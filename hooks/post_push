@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+if [[ -n "$SOURCE_BRANCH" ]]; then
+    VERSION=$SOURCE_BRANCH
+else
+    VERSION=$SOURCE_COMMIT
+fi
+
+docker tag $IMAGE_NAME $DOCKER_REPO:$VERSION
+docker push $DOCKER_REPO:$VERSION

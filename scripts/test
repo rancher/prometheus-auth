@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+cd $(dirname $0)/..
+
+echo Running tests
+
+PACKAGES=$(go list ./...)
+
+[ "${ARCH}" == "amd64" ] && RACE=-race
+go test ${RACE} -cover -tags=test ${PACKAGES}

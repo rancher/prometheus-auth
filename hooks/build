@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+if [[ -n "$SOURCE_BRANCH" ]]; then
+    VERSION=$SOURCE_BRANCH
+else
+    VERSION=$SOURCE_COMMIT
+fi
+
+docker build --build-arg VCS_REF=$SOURCE_COMMIT \
+	--build-arg VERSION=$VERSION \
+	-t $IMAGE_NAME .
