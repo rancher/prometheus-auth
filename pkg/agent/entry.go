@@ -4,13 +4,22 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/juju/errors"
+	promapi "github.com/prometheus/client_golang/api"
+	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/rancher/prometheus-auth/pkg/data"
+	"github.com/rancher/prometheus-auth/pkg/kube"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"golang.org/x/net/netutil"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 func Run(cliContext *cli.Context) {
@@ -47,6 +56,15 @@ func Run(cliContext *cli.Context) {
 	cfg.myToken = accessToken
 
 	log.Println(cfg)
+
+	reader, err := createAgent(cfg)
+	if err != nil {
+		log.WithError(err).Fatal("Failed to create agent")
+	}
+
+	if err = reader.serve(); err != nil {
+		log.WithError(err).Fatal("Failed to serve")
+	}
 }
 
 type agentConfig struct {
@@ -69,4 +87,64 @@ func (a *agentConfig) String() string {
 	sb.WriteString(" .")
 
 	return sb.String()
+}
+
+type agent struct {
+	cfg        *agentConfig
+	listener   net.Listener
+	namespaces kube.Namespaces
+	remoteAPI  promapiv1.API
+}
+
+func (a *agent) serve() error {
+	return nil
+}
+
+func createAgent(cfg *agentConfig) (*agent, error) {
+	utilruntime.ReallyCrash = false
+	utilruntime.PanicHandlers = []func(interface{}){
+		func(i interface{}) {
+			if err, ok := i.(error); ok {
+				log.Error(errors.ErrorStack(err))
+			} else {
+				log.Error(i)
+			}
+		},
+	}
+	utilruntime.ErrorHandlers = []func(err error){
+		func(err error) {
+			log.Error(errors.ErrorStack(err))
+		},
+	}
+
+	listener, err := net.Listen("tcp", cfg.listenAddress)
+	if err != nil {
+		return nil, errors.Annotatef(err, "unable to listen on addr %s", cfg.listenAddress)
+	}
+	listener = netutil.LimitListener(listener, cfg.maxConnections)
+
+	// create Kubernetes client
+	k8sConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to create Kubernetes config by InClusterConfig()")
+	}
+	k8sClient, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to new Kubernetes clientSet")
+	}
+
+	// create Prometheus client
+	promClient, err := promapi.NewClient(promapi.Config{
+		Address: cfg.proxyURL.String(),
+	})
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to new Prometheus client")
+	}
+
+	return &agent{
+		cfg:        cfg,
+		listener:   listener,
+		namespaces: kube.NewNamespaces(cfg.ctx, k8sClient),
+		remoteAPI:  promapiv1.NewAPI(promClient),
+	}, nil
 }
