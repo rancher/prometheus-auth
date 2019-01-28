@@ -10,73 +10,59 @@
 
 ### Rancher version supported
 
-- [v2.1.0 and above](https://github.com/rancher/rancher/releases/tag/v2.1.0)
+- [v2.2.0 and above](https://github.com/rancher/rancher/releases/tag/v2.2.0)
 
 ## How to use
 
 ### Running parameters
 
 ```bash
-$ prometheus-auth -h
 NAME:
-   prometheus-auth - Authorization plugins for Rancher monitoring
+   prometheus-auth - Deploying in the front of Prometheus to intercept and hijack the APIs
 
 USAGE:
    prometheus-auth [global options] command [command options] [arguments...]
 
-...
+VERSION:
+   ...
+
+DESCRIPTION:
+   
+        ##################################################################################
+        ##                                      RBAC                                    ##
+        ##################################################################################
+        Resources                 Non-Resource URLs  Resource Names       Verbs
+        ---------                 -----------------  --------------       -----
+        namespaces                []                 []                   [list,watch,get]
+        secrets,                  []                 []                   [list,watch,get]
+        selfsubjectaccessreviews  []                 []                   [create]
 
 COMMANDS:
-     remote   An authorization remote reader for Prometheus, with RBAC: [namespaces](list, watch, get)
-     agent    An authorization agent before Prometheus, with RBAC: [namespaces, secrets, serviceaccounts, clusterrole, clusterrolebindings, role, rolebindings](list, watch, get)
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --log.json     [optional] Log as JSON
-   --log.debug    [optional] Log debug info
-   --help, -h     show help
-   --version, -v  print the version
-
+   --log.json                    [optional] Log as JSON
+   --log.debug                   [optional] Log debug info
+   --listen-address value        [optional] Address to listening (default: ":9090")
+   --proxy-url value             [optional] URL to proxy (default: "http://localhost:9999")
+   --read-timeout value          [optional] Maximum duration before timing out read of the request, and closing idle connections (default: 5m0s)
+   --max-connections value       [optional] Maximum number of simultaneous connections (default: 512)
+   --filter-reader-labels value  [optional] Filter out the configured labels when calling '/api/v1/read'
+   --help, -h                    show help
+   --version, -v                 print the version
 
 ```
 
-#### Start a remote reader
+### Start example
 
 ```bash
-$ prometheus-auth remote start -h
-NAME:
-   prometheus-auth remote start - Start a Prometheus remote reader
-
-USAGE:
-   prometheus-auth remote start [command options] [arguments...]
-
-OPTIONS:
-   --listen.address value              [optional] Address to listen (default: ":9201")
-   --remote.read-url value             [optional] URL to read from remote (default: "http://prometheus-operated.cattle-prometheus:9090/api/v1/read")
-   --remote.read-timeout value         [optional] Timeout to read from remote (default: 5s)
-   --filter.external-labels-key value  [optional] Filter out the keys of configured 'externalLabels' before reading remote (default: "prometheus", "prometheus_replica")
-   --filter.only                       [optional] Only filter out the setting keys, but not authorization
-   --watch.resync-period value         [optional] Resync period of Kubernetes watching (default: 15m0s)
-```
-
-#### Start a agent 
-
-```bash
-$ prometheus-auth agent start -h
-NAME:
-   prometheus-auth agent start - Start a Prometheus agent
-
-USAGE:
-   prometheus-auth agent start [command options] [arguments...]
-
-OPTIONS:
-   --listen.address value         [optional] Address to listening (default: ":9090")
-   --agent.proxy-url value        [optional] URL to proxy (default: "http://localhost:9999")
-   --agent.read-timeout value     [optional] Maximum duration before timing out read of the request, and closing idle connections (default: 5m0s)
-   --agent.max-connections value  [optional] Maximum number of simultaneous connections (default: 512)
-   --watch.resync-period value    [optional] Resync period of Kubernetes watching (default: 15m0s)
+prometheus-auth --log.debug --proxy-url http://localhost:9090 --listen-address :9090
 
 ```
+
+### Metrics
+
+`GET` - `/_/metrics` [sample](METRICS)
 
 # License
 
