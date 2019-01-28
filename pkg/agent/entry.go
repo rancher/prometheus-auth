@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/cmux"
 	"github.com/juju/errors"
+	grpcproxy "github.com/mwitkow/grpc-proxy/proxy"
 	promapi "github.com/prometheus/client_golang/api"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/rancher/prometheus-auth/pkg/data"
@@ -17,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"golang.org/x/net/netutil"
+	"google.golang.org/grpc"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -97,7 +101,37 @@ type agent struct {
 }
 
 func (a *agent) serve() error {
-	return nil
+	listenerMux := cmux.New(a.listener)
+	httpProxy := a.createHTTPProxy()
+	grpcProxy := a.createGRPCProxy()
+
+	errCh := make(chan error)
+	go func() {
+		if err := httpProxy.Serve(createHTTPListener(listenerMux)); err != nil {
+			errCh <- errors.Annotate(err, "failed to start proxy http listener")
+		}
+	}()
+	go func() {
+		if err := grpcProxy.Serve(createGRPCListener(listenerMux, a.cfg.myToken)); err != nil {
+			errCh <- errors.Annotate(err, "failed to start proxy grpc listener")
+		}
+	}()
+	go func() {
+		log.Infof("Start listening for connections on %s", a.cfg.listenAddress)
+
+		if err := listenerMux.Serve(); err != nil {
+			errCh <- errors.Annotatef(err, "failed to listen on %s", a.cfg.listenAddress)
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-a.cfg.ctx.Done():
+		grpcProxy.GracefulStop()
+		httpProxy.Shutdown(a.cfg.ctx)
+		return nil
+	}
 }
 
 func createAgent(cfg *agentConfig) (*agent, error) {
@@ -147,4 +181,18 @@ func createAgent(cfg *agentConfig) (*agent, error) {
 		namespaces: kube.NewNamespaces(cfg.ctx, k8sClient),
 		remoteAPI:  promapiv1.NewAPI(promClient),
 	}, nil
+}
+
+func (a *agent) createHTTPProxy() *http.Server {
+	return &http.Server{
+		Handler:     a.httpBackend(),
+		ReadTimeout: a.cfg.readTimeout,
+	}
+}
+
+func (a *agent) createGRPCProxy() *grpc.Server {
+	return grpc.NewServer(
+		grpc.CustomCodec(grpcproxy.Codec()),
+		grpc.UnknownServiceHandler(a.grpcBackend()),
+	)
 }
