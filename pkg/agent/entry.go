@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"strings"
 	"time"
@@ -27,6 +28,11 @@ import (
 )
 
 func Run(cliContext *cli.Context) {
+	// enable profiler
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

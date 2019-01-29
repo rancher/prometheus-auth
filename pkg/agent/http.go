@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,6 +26,9 @@ func (a *agent) httpBackend() http.Handler {
 			})
 		})
 	}
+
+	// enable metrics
+	router.Path("/_/metrics").Methods("GET").Handler(promhttp.Handler())
 
 	// proxy white list
 	router.Path("/alerts").Methods("GET").Handler(proxy)
