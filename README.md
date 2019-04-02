@@ -44,7 +44,7 @@ GLOBAL OPTIONS:
    --log.json                    [optional] Log as JSON
    --log.debug                   [optional] Log debug info
    --listen-address value        [optional] Address to listening (default: ":9090")
-   --proxy-url value             [optional] URL to proxy (default: "http://localhost:9999")
+   --proxy-url value             [optional] URL to proxy (default: "http://127.0.0.1:9999")
    --read-timeout value          [optional] Maximum duration before timing out read of the request, and closing idle connections (default: 5m0s)
    --max-connections value       [optional] Maximum number of simultaneous connections (default: 512)
    --filter-reader-labels value  [optional] Filter out the configured labels when calling '/api/v1/read'
@@ -56,7 +56,7 @@ GLOBAL OPTIONS:
 ### Start example
 
 ```bash
-prometheus-auth --log.debug --proxy-url http://localhost:9090 --listen-address :9090
+prometheus-auth --log.debug --proxy-url http://127.0.0.1:9090 --listen-address :9090
 
 ```
 

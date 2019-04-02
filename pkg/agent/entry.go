@@ -30,7 +30,7 @@ import (
 func Run(cliContext *cli.Context) {
 	// enable profiler
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		log.Println(http.ListenAndServe("127.0.0.1:6060", nil))
 	}()
 
 	ctx, cancel := context.WithCancel(context.Background())

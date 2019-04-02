@@ -48,7 +48,7 @@ func main() {
 		cli.StringFlag{
 			Name:  "proxy-url",
 			Usage: "[optional] URL to proxy",
-			Value: "http://localhost:9999",
+			Value: "http://127.0.0.1:9999",
 		},
 		cli.DurationFlag{
 			Name:  "read-timeout",
