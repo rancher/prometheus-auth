@@ -16,3 +16,4 @@ trash.lock
 .dapper
 .cache
 dist/
+.tmp
