@@ -15,9 +15,23 @@ steps:
   - name: docker
     path: /var/run/docker.sock
 
+- name: stage-binaries
+  image: rancher/dapper:1.11.2
+  commands:
+  - cp -r ./bin/* ./
+  when:
+    instance:
+    - drone-publish.rancher.io
+    ref:
+    - refs/head/master
+    - refs/tags/*
+    event:
+    - tag
+
 - name: docker-publish
   image: plugins/docker
   settings:
+    dockerfile: package/Dockerfile
     password:
       from_secret: docker_password
     repo: "rancher/prometheus-auth"
