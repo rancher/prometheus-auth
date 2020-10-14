@@ -1,27 +1,41 @@
 ---
-pipeline:
-  build:
-    privileged: true
-    image: rancher/dapper:1.11.2
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    commands:
-      - dapper ci
+kind: pipeline
+name: amd64
 
-  stage-binaries:
-    image: rancher/dapper:1.11.2
-    commands:
-      - cp -r ./bin/* ./
-    when:
-      branch: master
-      event: tag
+platform:
+  os: linux
+  arch: amd64
 
-  publish-rke-tools:
-    image: plugins/docker
+steps:
+- name: build
+  privileged: true
+  image: rancher/dapper:1.11.2
+  commands:
+  - dapper ci
+  volumes:
+  - name: docker
+    path: /var/run/docker.sock
+
+- name: docker-publish
+  image: plugins/docker
+  settings:
     dockerfile: package/Dockerfile
-    repo: rancher/prometheus-auth
-    tag: ${DRONE_TAG}
-    secrets: [docker_username, docker_password]
-    when:
-      branch: master
-      event: tag
+    password:
+      from_secret: docker_password
+    repo: "rancher/prometheus-auth"
+    tag: "${DRONE_TAG}"
+    username:
+      from_secret: docker_username
+  when:
+    instance:
+    - drone-publish.rancher.io
+    ref:
+    - refs/head/master
+    - refs/tags/*
+    event:
+    - tag
+
+volumes:
+- name: docker
+  host:
+    path: /var/run/docker.sock
