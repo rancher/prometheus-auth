@@ -8,7 +8,6 @@ platform:
 
 steps:
 - name: build
-  privileged: true
   image: rancher/dapper:1.11.2
   commands:
   - dapper ci
@@ -19,7 +18,6 @@ steps:
 - name: docker-publish
   image: plugins/docker
   settings:
-    dockerfile: package/Dockerfile
     password:
       from_secret: docker_password
     repo: "rancher/prometheus-auth"
