@@ -1,4 +1,4 @@
-FROM alpine:3.12
+FROM alpine:3.12.7
 
 MAINTAINER Frank Mai <frank@rancher.com>
 
