@@ -9,6 +9,6 @@ RUN apk add --no-cache --update \
     chown -R nobody:nogroup /data; \
     mkdir -p /run/cache
 
-COPY prometheus-auth /usr/bin/
+COPY bin/prometheus-auth /usr/bin/
 
-ENTRYPOINT ["/usr/bin/prometheus-auth"]
+CMD ["prometheus-auth"]

@@ -8,7 +8,7 @@ import (
 
 	"github.com/juju/errors"
 	"github.com/prometheus/prometheus/pkg/labels"
-	"github.com/prometheus/prometheus/promql"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/rancher/prometheus-auth/pkg/data"
 )
 
@@ -163,27 +163,32 @@ func TestFilterLabelMatchers(t *testing.T) {
 }
 
 func walkExpr(name, input, expect string, change func([]*labels.Matcher) ([]*labels.Matcher, error)) error {
-	promlbInputExpr, err := promql.ParseExpr(input)
+	promlbInputExpr, err := parser.ParseExpr(input)
 	if err != nil {
 		return errors.Annotatef(err, "%s cannot parse expr from %s", name, input)
 	}
 
-	promql.Inspect(promlbInputExpr, func(node promql.Node, _ []promql.Node) error {
+	parser.Inspect(promlbInputExpr, func(node parser.Node, _ []parser.Node) error {
 		switch n := node.(type) {
-		case *promql.VectorSelector:
+		case *parser.VectorSelector:
 			ret, err := change(n.LabelMatchers)
 			if err != nil {
 				return errors.Annotatef(err, "%s causes error", input)
 			}
 
 			n.LabelMatchers = ret
-		case *promql.MatrixSelector:
-			ret, err := change(n.LabelMatchers)
+		case *parser.MatrixSelector:
+			vs, ok := n.VectorSelector.(*parser.VectorSelector)
+			if !ok {
+				// If it is not a vector selector, we don't need to modify the labelMatchers
+				return nil
+			}
+			ret, err := change(vs.LabelMatchers)
 			if err != nil {
 				return errors.Annotatef(err, "%s causes error", input)
 			}
-
-			n.LabelMatchers = ret
+			vs.LabelMatchers = ret
+			n.VectorSelector = vs
 		}
 		return nil
 	})

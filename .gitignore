@@ -4,7 +4,9 @@
 *.dll
 *.so
 *.dylib
+*.swp
 bin/
+prometheus-auth
 
 # Test binary, build with `go test -c`
 *.test

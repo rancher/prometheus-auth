@@ -6,5 +6,13 @@ source $(dirname $0)/version
 cd $(dirname $0)/..
 
 mkdir -p bin
-[ "$(uname)" != "Darwin" ] && LINKFLAGS="-extldflags -static -s"
-CGO_ENABLED=0 go build -ldflags "-X main.VERSION=$VERSION -X main.HASH=$COMMIT $LINKFLAGS" -o bin/prometheus-auth ./cmd/main.go
+if [ "$(uname)" = "Linux" ]; then
+    OTHER_LINKFLAGS="-extldflags -static -s"
+fi
+LINKFLAGS="-X github.com/rancher/prometheus-auth.Version=$VERSION"
+LINKFLAGS="-X github.com/rancher/prometheus-auth.GitCommit=$COMMIT $LINKFLAGS"
+CGO_ENABLED=0 go build -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/prometheus-auth
+if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
+    GOOS=darwin go build -ldflags "$LINKFLAGS" -o bin/prometheus-auth-darwin
+    GOOS=windows go build -ldflags "$LINKFLAGS" -o bin/prometheus-auth-windows
+fi
