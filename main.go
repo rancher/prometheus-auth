@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	VER  = "dev"
-	HASH = "-"
+	Version   = "dev"
+	GitCommit = "-"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Version = fmt.Sprintf("%s(%s)", VER, HASH)
+	app.Version = fmt.Sprintf("%s(%s)", Version, GitCommit)
 	app.Name = "prometheus-auth"
 	app.Usage = "Deploying in the front of Prometheus to intercept and hijack the APIs"
 	app.Description = `

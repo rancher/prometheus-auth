@@ -3,22 +3,16 @@ set -e
 
 source $(dirname $0)/version
 
-ARCH=${ARCH:-"amd64"}
-SUFFIX=""
-[ "${ARCH}" != "amd64" ] && SUFFIX="_${ARCH}"
+cd $(dirname $0)/..
 
-cd $(dirname $0)/../package
-
-TAG=${TAG:-${VERSION}${SUFFIX}}
-REPO=${REPO:-rancher}
-
-if echo $TAG | grep -q dirty; then
-    TAG=dev
-fi
-
-cp ../bin/prometheus-auth .
+mkdir -p dist/artifacts
+cp bin/prometheus-auth dist/artifacts/prometheus-auth${SUFFIX}
 
 IMAGE=${REPO}/prometheus-auth:${TAG}
-docker build -t ${IMAGE} .
-echo ${IMAGE} > ../dist/images
+DOCKERFILE=package/Dockerfile
+if [ -e ${DOCKERFILE}.${ARCH} ]; then
+    DOCKERFILE=${DOCKERFILE}.${ARCH}
+fi
+
+docker build -f ${DOCKERFILE} -t ${IMAGE} .
 echo Built ${IMAGE}
