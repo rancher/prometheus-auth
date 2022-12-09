@@ -1,24 +1,18 @@
-FROM golang:1.15.2-alpine3.12
+FROM registry.suse.com/bci/golang:1.17
 
-RUN apk -U add bash git gcc musl-dev docker vim less file curl wget ca-certificates
+ARG DAPPER_HOST_ARCH
+ENV ARCH $DAPPER_HOST_ARCH
 
-RUN go get -d golang.org/x/lint/golint && \
-    git -C /go/src/golang.org/x/lint/golint checkout -b current 06c8688daad7faa9da5a0c2f163a3d14aac986ca && \
-    go install golang.org/x/lint/golint && \
-    rm -rf /go/src /go/pkg
+RUN zypper -n install git docker vim less file curl wget
+RUN go get golang.org/x/tools/cmd/goimports
+RUN if [ "${ARCH}" == "amd64" ]; then \
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.46.2; \
+    fi
 
-RUN go get github.com/rancher/trash && \
-    go get -d github.com/alecthomas/gometalinter && \
-    git -C /go/src/github.com/alecthomas/gometalinter checkout -b current v2.0.11 && \
-    go install github.com/alecthomas/gometalinter && \
-    gometalinter --install && \
-    rm -rf /go/src /go/pkg
-
-ENV DAPPER_ENV REPO TAG DRONE_TAG
-ENV DAPPER_SOURCE /go/src/github.com/rancher/prometheus-auth/
+ENV DAPPER_ENV REPO TAG DRONE_TAG CROSS
+ENV DAPPER_SOURCE /home/prometheus-auth/
 ENV DAPPER_OUTPUT ./bin ./dist
 ENV DAPPER_DOCKER_SOCKET true
-ENV TRASH_CACHE ${DAPPER_SOURCE}/.trash-cache
 ENV HOME ${DAPPER_SOURCE}
 WORKDIR ${DAPPER_SOURCE}
 
