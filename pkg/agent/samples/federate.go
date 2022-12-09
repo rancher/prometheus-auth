@@ -25,7 +25,7 @@ var NoneNamespacesTokenFederateScenarios = map[string]Scenario{
 			"match[]": []string{"-not-a-valid-metric-name"},
 		},
 		RespCode: http.StatusBadRequest,
-		RespBody: `parse error at char 1: vector selector must contain label matchers or metric name
+		RespBody: `1:1: parse error: unexpected <op:->
 `,
 	},
 	"invalid Params somewhere in the middle": {
@@ -33,7 +33,7 @@ var NoneNamespacesTokenFederateScenarios = map[string]Scenario{
 			"match[]": []string{"not-a-valid-metric-name"},
 		},
 		RespCode: http.StatusBadRequest,
-		RespBody: `parse error at char 4: could not parse remaining input "-a-valid-metric"...
+		RespBody: `1:4: parse error: unexpected <op:->
 `,
 	},
 	"test_metric1": {
@@ -140,7 +140,7 @@ var SomeNamespacesTokenFederateScenarios = map[string]Scenario{
 			"match[]": []string{"-not-a-valid-metric-name"},
 		},
 		RespCode: http.StatusBadRequest,
-		RespBody: `parse error at char 1: vector selector must contain label matchers or metric name
+		RespBody: `1:1: parse error: unexpected <op:->
 `,
 	},
 	"invalid Params somewhere in the middle": {
@@ -148,7 +148,7 @@ var SomeNamespacesTokenFederateScenarios = map[string]Scenario{
 			"match[]": []string{"not-a-valid-metric-name"},
 		},
 		RespCode: http.StatusBadRequest,
-		RespBody: `parse error at char 4: could not parse remaining input "-a-valid-metric"...
+		RespBody: `1:4: parse error: unexpected <op:->
 `,
 	},
 	"test_metric1": {

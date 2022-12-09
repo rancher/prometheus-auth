@@ -27,7 +27,7 @@ var NoneNamespacesTokenSeriesScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `parse error at char 8: could not parse remaining input "][query"...`,
+			Error:     `1:8: parse error: unexpected right bracket ']'`,
 		},
 	},
 	"test_metric1": {
@@ -190,7 +190,7 @@ var SomeNamespacesTokenSeriesScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `parse error at char 8: could not parse remaining input "][query"...`,
+			Error:     `1:8: parse error: unexpected right bracket ']'`,
 		},
 	},
 	"test_metric1": {
