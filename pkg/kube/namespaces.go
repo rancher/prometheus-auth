@@ -108,7 +108,7 @@ func (n *namespaces) validate(token string) (string, error) {
 			User: sarUser,
 		},
 	}
-	reviewResult, err := n.subjectAccessReviewsClient.Create(sar)
+	reviewResult, err := n.subjectAccessReviewsClient.Create(context.TODO(), sar, meta.CreateOptions{})
 	if err != nil {
 		return "", errors.Annotatef(err, "failed to review token")
 	}
@@ -127,10 +127,10 @@ func NewNamespaces(ctx context.Context, k8sClient kubernetes.Interface) Namespac
 	sec := k8sClient.CoreV1().Secrets(meta.NamespaceAll)
 	secListWatch := &clientCache.ListWatch{
 		ListFunc: func(options meta.ListOptions) (object runtime.Object, e error) {
-			return sec.List(options)
+			return sec.List(context.TODO(), options)
 		},
 		WatchFunc: func(options meta.ListOptions) (i watch.Interface, e error) {
-			return sec.Watch(options)
+			return sec.Watch(context.TODO(), options)
 		},
 	}
 	secInformer := clientCache.NewSharedIndexInformer(secListWatch, &core.Secret{}, 2*time.Hour, clientCache.Indexers{byTokenIndex: secretByToken})
@@ -139,10 +139,10 @@ func NewNamespaces(ctx context.Context, k8sClient kubernetes.Interface) Namespac
 	ns := k8sClient.CoreV1().Namespaces()
 	nsListWatch := &clientCache.ListWatch{
 		ListFunc: func(options meta.ListOptions) (object runtime.Object, e error) {
-			return ns.List(options)
+			return ns.List(context.TODO(), options)
 		},
 		WatchFunc: func(options meta.ListOptions) (i watch.Interface, e error) {
-			return ns.Watch(options)
+			return ns.Watch(context.TODO(), options)
 		},
 	}
 	nsInformer := clientCache.NewSharedIndexInformer(nsListWatch, &core.Namespace{}, 10*time.Minute, clientCache.Indexers{byProjectIDIndex: namespaceByProjectID})
