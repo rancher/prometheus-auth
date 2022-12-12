@@ -5,6 +5,7 @@ import (
 
 	promlb "github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/prompb"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -16,9 +17,7 @@ func createMatcher(matcherName string, namespaces []string) *promlb.Matcher {
 		Name: matcherName,
 	}
 
-	modifyMatcher(ret, namespaces)
-
-	return ret
+	return modifyMatcher(ret, namespaces)
 }
 
 func createLabelMatcher(matcherName string, namespaces []string) *prompb.LabelMatcher {
@@ -31,7 +30,7 @@ func createLabelMatcher(matcherName string, namespaces []string) *prompb.LabelMa
 	return ret
 }
 
-func modifyMatcher(srcMatcher *promlb.Matcher, namespaces []string) {
+func modifyMatcher(srcMatcher *promlb.Matcher, namespaces []string) *promlb.Matcher {
 	size := len(namespaces)
 
 	if size == 0 {
@@ -44,6 +43,16 @@ func modifyMatcher(srcMatcher *promlb.Matcher, namespaces []string) {
 		srcMatcher.Type = promlb.MatchRegexp
 		srcMatcher.Value = join(namespaces)
 	}
+
+	matcher, err := promlb.NewMatcher(srcMatcher.Type, srcMatcher.Name, srcMatcher.Value)
+	if err != nil {
+		log.Errorf("unable to modify matcher from %s%s%s to %s%s%s",
+			srcMatcher.Name, srcMatcher.Type, srcMatcher.Value,
+			matcher.Name, matcher.Type, matcher.Value,
+		)
+	}
+
+	return matcher
 }
 
 func modifyLabelMatcher(srcMatcher *prompb.LabelMatcher, namespaces []string) {

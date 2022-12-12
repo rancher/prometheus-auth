@@ -26,19 +26,19 @@ func translateMatcher(namespaceSet data.Set, srcMatcher *promlb.Matcher) {
 			namespaces = stringSliceIgnore(namespaces, &value)
 		}
 
-		modifyMatcher(srcMatcher, namespaces)
+		srcMatcher = modifyMatcher(srcMatcher, namespaces)
 	case promlb.MatchRegexp: // =~
 		namespaces := stringSliceFilter(namespaceSet.Values(), func(ns *string) bool {
 			return srcMatcher.Matches(*ns)
 		})
 
-		modifyMatcher(srcMatcher, namespaces)
+		srcMatcher = modifyMatcher(srcMatcher, namespaces)
 	case promlb.MatchNotRegexp: // !~
 		namespaces := stringSliceFilter(namespaceSet.Values(), func(ns *string) bool {
 			return srcMatcher.Matches(*ns)
 		})
 
-		modifyMatcher(srcMatcher, namespaces)
+		srcMatcher = modifyMatcher(srcMatcher, namespaces)
 	}
 }
 
