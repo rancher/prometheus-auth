@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-bin/
+/prometheus-auth
 
 # Test binary, build with `go test -c`
 *.test
@@ -15,4 +15,5 @@ bin/
 .dapper
 .cache
 dist/
+bin/
 .tmp
