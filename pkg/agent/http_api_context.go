@@ -146,7 +146,7 @@ func (f apiContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Error(errors.ErrorStack(err))
+	log.Debug(errors.ErrorStack(err))
 
 	// response error msg
 	causeErrMsg := ""

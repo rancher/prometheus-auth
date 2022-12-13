@@ -1,13 +1,3 @@
-/.idea
-/bin
-/hooks
-LICENSE
-VERSION
-README.md
-
-.DS_Store
-
-/node_modules
 ./.dapper
 ./.cache
 ./dist

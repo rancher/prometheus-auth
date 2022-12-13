@@ -15,6 +15,7 @@ import (
 	promlb "github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/promql"
+	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/prometheus/prometheus/util/stats"
 	"github.com/rancher/prometheus-auth/pkg/data"
@@ -31,7 +32,7 @@ func hijackFederate(apiCtx *apiContext) error {
 
 	matchFormValues := queries["match[]"]
 	for _, rawValue := range matchFormValues {
-		_, err := promql.ParseMetricSelector(rawValue)
+		_, err := parser.ParseMetricSelector(rawValue)
 		if err != nil {
 			return errors.Wrap(err, badRequestErr)
 		}
@@ -45,7 +46,7 @@ func hijackFederate(apiCtx *apiContext) error {
 	// hijack
 	queries.Del("match[]")
 	for idx, rawValue := range matchFormValues {
-		expr, err := promql.ParseExpr(rawValue)
+		expr, err := parser.ParseExpr(rawValue)
 		if err != nil {
 			return errors.Wrap(err, badRequestErr)
 		}
@@ -87,7 +88,7 @@ func hijackQuery(apiCtx *apiContext) error {
 	}
 
 	rawValue := queryFormValue
-	queryExpr, err := promql.ParseExpr(rawValue)
+	queryExpr, err := parser.ParseExpr(rawValue)
 	if err != nil {
 		return errors.Wrap(err, badRequestErr)
 	}
@@ -99,20 +100,20 @@ func hijackQuery(apiCtx *apiContext) error {
 			qs = stats.NewQueryStats(stats.NewQueryTimers())
 		}
 
-		if queryExpr.Type() != promql.ValueTypeScalar {
-			var val promql.Value
+		if queryExpr.Type() != parser.ValueTypeScalar {
+			var val parser.Value
 			switch queryExpr.Type() {
-			case promql.ValueTypeVector:
+			case parser.ValueTypeVector:
 				val = make(promql.Vector, 0, 0)
-			case promql.ValueTypeMatrix:
+			case parser.ValueTypeMatrix:
 				val = promql.Matrix{}
 			default:
 				return errors.Wrap(errors.Errorf("unexpected expression type %q", queryExpr.Type()), badRequestErr)
 			}
 
 			emptyRespData := struct {
-				ResultType promql.ValueType  `json:"resultType"`
-				Result     promql.Value      `json:"result"`
+				ResultType parser.ValueType  `json:"resultType"`
+				Result     parser.Value      `json:"result"`
 				Stats      *stats.QueryStats `json:"stats,omitempty"`
 			}{
 				ResultType: val.Type(),
@@ -188,7 +189,7 @@ func hijackQueryRange(apiCtx *apiContext) error {
 	}
 
 	rawValue := queryFormValue
-	queryExpr, err := promql.ParseExpr(rawValue)
+	queryExpr, err := parser.ParseExpr(rawValue)
 	if err != nil {
 		return errors.Wrap(err, badRequestErr)
 	}
@@ -200,20 +201,20 @@ func hijackQueryRange(apiCtx *apiContext) error {
 			qs = stats.NewQueryStats(stats.NewQueryTimers())
 		}
 
-		if queryExpr.Type() != promql.ValueTypeScalar {
-			var val promql.Value
+		if queryExpr.Type() != parser.ValueTypeScalar {
+			var val parser.Value
 			switch queryExpr.Type() {
-			case promql.ValueTypeVector:
+			case parser.ValueTypeVector:
 				val = promql.Matrix{}
-			case promql.ValueTypeMatrix:
+			case parser.ValueTypeMatrix:
 				val = promql.Matrix{}
 			default:
 				return errors.Wrap(errors.Errorf("unexpected expression type %q", queryExpr.Type()), badRequestErr)
 			}
 
 			emptyRespData := struct {
-				ResultType promql.ValueType  `json:"resultType"`
-				Result     promql.Value      `json:"result"`
+				ResultType parser.ValueType  `json:"resultType"`
+				Result     parser.Value      `json:"result"`
 				Stats      *stats.QueryStats `json:"stats,omitempty"`
 			}{
 				ResultType: val.Type(),
@@ -272,7 +273,7 @@ func hijackSeries(apiCtx *apiContext) error {
 	}
 
 	for _, rawValue := range matchFormValues {
-		_, err := promql.ParseMetricSelector(rawValue)
+		_, err := parser.ParseMetricSelector(rawValue)
 		if err != nil {
 			return errors.Wrap(err, badRequestErr)
 		}
@@ -288,7 +289,7 @@ func hijackSeries(apiCtx *apiContext) error {
 	// hijack
 	queries.Del("match[]")
 	for idx, rawValue := range matchFormValues {
-		expr, err := promql.ParseExpr(rawValue)
+		expr, err := parser.ParseExpr(rawValue)
 		if err != nil {
 			return errors.Wrap(err, badRequestErr)
 		}
@@ -397,7 +398,10 @@ func hijackLabelName(apiCtx *apiContext) error {
 
 	// hijack
 	expr := prom.NewExprForCountAllLabels(apiCtx.namespaceSet.Values())
-	vals, err := apiCtx.remoteAPI.Query(apiCtx.request.Context(), expr, time.Time{})
+	vals, warns, err := apiCtx.remoteAPI.Query(apiCtx.request.Context(), expr, time.Time{})
+	for _, warn := range warns {
+		log.Debugf("received warning on query: %s", warn)
+	}
 	if err != nil {
 		return errors.Wrap(err, notProvisionedErr)
 	}
@@ -442,13 +446,25 @@ func parseDuration(s string) (time.Duration, error) {
 	return 0, errors.Errorf("cannot parse %q to a valid duration", s)
 }
 
-func modifyExpression(originalExpr promql.Expr, namespaceSet data.Set) (modifiedExpr string) {
-	promql.Inspect(originalExpr, func(node promql.Node, _ []promql.Node) error {
+func modifyExpression(originalExpr parser.Expr, namespaceSet data.Set) (modifiedExpr string) {
+	parser.Inspect(originalExpr, func(node parser.Node, _ []parser.Node) error {
 		switch n := node.(type) {
-		case *promql.VectorSelector:
+		case *parser.VectorSelector:
 			n.LabelMatchers = prom.FilterMatchers(namespaceSet, n.LabelMatchers)
-		case *promql.MatrixSelector:
-			n.LabelMatchers = prom.FilterMatchers(namespaceSet, n.LabelMatchers)
+		case *parser.MatrixSelector:
+			vs, ok := n.VectorSelector.(*parser.VectorSelector)
+			if !ok {
+				// If it is not a vector selector, we don't need to modify the labelMatchers
+				//
+				// However, this is unexpected since we always expect to be able to extract
+				// the VectorSelector from the MatrixSelector.
+				//
+				// If this is not the case, we may be encountering an unexpected error here.
+				log.Errorf("unable to extract vector selector from matrix selector")
+				return nil
+			}
+			vs.LabelMatchers = prom.FilterMatchers(namespaceSet, vs.LabelMatchers)
+			n.VectorSelector = vs
 		}
 		return nil
 	})

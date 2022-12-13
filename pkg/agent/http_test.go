@@ -1,4 +1,4 @@
-// +build test
+//go:build test
 
 package agent
 
@@ -26,14 +26,15 @@ import (
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/config"
+	"github.com/prometheus/prometheus/pkg/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/promql"
-	"github.com/prometheus/prometheus/util/testutil"
+	promtsdb "github.com/prometheus/prometheus/tsdb"
 	promweb "github.com/prometheus/prometheus/web"
-	promtsdb "github.com/prometheus/tsdb"
 	"github.com/rancher/prometheus-auth/pkg/agent/samples"
 	"github.com/rancher/prometheus-auth/pkg/data"
 	"github.com/rancher/prometheus-auth/pkg/kube"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_accessControl(t *testing.T) {
@@ -59,11 +60,7 @@ func Test_accessControl(t *testing.T) {
 	dbDir, err := ioutil.TempDir("", "tsdb-ready")
 	defer os.RemoveAll(dbDir)
 
-	testutil.Ok(t, err)
-
-	db, err := promtsdb.Open(dbDir, nil, nil, nil)
-
-	testutil.Ok(t, err)
+	require.NoError(t, err)
 
 	webHandler := promweb.New(nil, &promweb.Options{
 		Context:        context.Background(),
@@ -82,17 +79,24 @@ func Test_accessControl(t *testing.T) {
 			Host:   "localhost:9090",
 			Path:   "/",
 		},
-		TSDB:    func() *promtsdb.DB { return db },
-		Version: &promweb.PrometheusVersion{},
-		Flags:   map[string]string{},
+		TSDBDir:      dbDir,
+		LocalStorage: &dbAdapter{suite.TSDB()},
+		Version:      &promweb.PrometheusVersion{},
+		Flags:        map[string]string{},
+
+		// Federate
+		LookbackDelta: 5 * time.Minute,
+
+		// Remote Read
+		RemoteReadSampleLimit:      1e6,
+		RemoteReadConcurrencyLimit: 1,
+		RemoteReadBytesInFrame:     0,
 	})
 	defer webHandler.Quit()
 
 	err = webHandler.ApplyConfig(&config.Config{
 		GlobalConfig: config.GlobalConfig{
-			ExternalLabels: model.LabelSet{
-				"prometheus": "cluster-level/test",
-			},
+			ExternalLabels: labels.Labels{{Name: "prometheus", Value: "cluster-level/test"}},
 		},
 	})
 	if err != nil {
@@ -104,7 +108,7 @@ func Test_accessControl(t *testing.T) {
 	nowMemberVal := refVal.FieldByName("now")
 	ptrToNow := unsafe.Pointer(nowMemberVal.UnsafeAddr())
 	realPtrToNow := (*func() model.Time)(ptrToNow)
-	*realPtrToNow = func() model.Time { return model.Time(101 * 60 * 1000) } // 101min, federation has 5 min `LookbackDelta`
+	*realPtrToNow = func() model.Time { return model.Time(101 * 60 * 1000) } // 101min, federation is set to have a 5 min `LookbackDelta`
 	apiV1MemberVal := refVal.FieldByName("apiV1").Elem()
 	nowMemberVal2 := apiV1MemberVal.FieldByName("now")
 	ptrToNow2 := unsafe.Pointer(nowMemberVal2.UnsafeAddr())
@@ -296,8 +300,13 @@ func Test_accessControl(t *testing.T) {
 }
 
 func startPrometheusWebHandler(t *testing.T, webHandler *promweb.Handler) {
+	l, err := webHandler.Listener()
+	if err != nil {
+		panic(fmt.Sprintf("Unable to start web listener: %s", err))
+	}
+
 	go func() {
-		err := webHandler.Run(context.Background())
+		err := webHandler.Run(context.Background(), l, "")
 		if err != nil {
 			panic(fmt.Sprintf("Can't start web handler:%s", err))
 		}
@@ -307,66 +316,46 @@ func startPrometheusWebHandler(t *testing.T, webHandler *promweb.Handler) {
 
 	resp, err := http.Get("http://localhost:9090/-/healthy")
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:9090/-/ready")
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:9090/version")
+	resp, err = http.Post("http://localhost:9090/api/v1/admin/tsdb/snapshot", "", strings.NewReader(""))
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:9090/graph")
+	resp, err = http.Post("http://localhost:9090/api/v1/admin/tsdb/delete_series", "", strings.NewReader("{}"))
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusServiceUnavailable, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 
 	// Set to ready.
 	webHandler.Ready()
 
 	resp, err = http.Get("http://localhost:9090/-/healthy")
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
 	resp, err = http.Get("http://localhost:9090/-/ready")
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:9090/version")
+	resp, err = http.Post("http://localhost:9090/api/v1/admin/tsdb/snapshot", "", strings.NewReader(""))
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	resp, err = http.Get("http://localhost:9090/graph")
+	resp, err = http.Post("http://localhost:9090/api/v1/admin/tsdb/delete_series?match[]=up", "", nil)
 
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/snapshot", "", strings.NewReader(""))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
-
-	resp, err = http.Post("http://localhost:9090/api/v2/admin/tsdb/delete_series", "", strings.NewReader("{}"))
-
-	testutil.Ok(t, err)
-	testutil.Equals(t, http.StatusOK, resp.StatusCode)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 }
 
 func mockAgent(t *testing.T) *agent {
@@ -443,4 +432,16 @@ func mockOwnedNamespaces() kube.Namespaces {
 			"someNamespacesToken": data.NewSet("ns-a", "ns-b"),
 		},
 	}
+}
+
+type dbAdapter struct {
+	*promtsdb.DB
+}
+
+func (a *dbAdapter) Stats(statsByLabelName string) (*promtsdb.Stats, error) {
+	return a.Head().Stats(statsByLabelName), nil
+}
+
+func (a *dbAdapter) WALReplayStatus() (promtsdb.WALReplayStatus, error) {
+	return promtsdb.WALReplayStatus{}, nil
 }
