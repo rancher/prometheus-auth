@@ -169,6 +169,43 @@ func getTestCases(t *testing.T) []httpTestCase {
 			Token:      "myToken",
 			Scenarios:  samples.MyTokenSeriesScenarios,
 		},
+		// unauthenticated
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenSeriesScenarios,
+		},
 	}
 }
 
@@ -378,6 +415,15 @@ type ScenarioValidator struct {
 func (v ScenarioValidator) Validate(t *testing.T, handler http.Handler) {
 	res := v.executeRequest(t, handler)
 	if res == nil {
+		return
+	}
+
+	// Validate unauthenticated user
+	if v.Token == "unauthenticated" {
+		// unauthenticated user
+		if got := res.Code; got != http.StatusUnauthorized {
+			t.Errorf("[series] [GET] token %q scenario %q: got code %d, want %d for unauthenticated users", v.Token, v.Name, got, http.StatusUnauthorized)
+		}
 		return
 	}
 
