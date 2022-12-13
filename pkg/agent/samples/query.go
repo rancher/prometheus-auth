@@ -790,6 +790,26 @@ var MyTokenQueryScenarios = map[string]Scenario{
 							T: timestamp.FromTime(start),
 						},
 					},
+					promql.Sample{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric1",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+							{
+								Name:  "namespace",
+								Value: "ns-c",
+							},
+						},
+						Point: promql.Point{
+							V: 1,
+							T: timestamp.FromTime(start),
+						},
+					},
 				},
 			},
 		},
@@ -804,7 +824,28 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeVector,
-				Result:     promql.Vector{},
+				Result: promql.Vector{
+					promql.Sample{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric1",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+							{
+								Name:  "namespace",
+								Value: "ns-c",
+							},
+						},
+						Point: promql.Point{
+							V: 1,
+							T: timestamp.FromTime(start),
+						},
+					},
+				},
 			},
 		},
 	},
@@ -818,7 +859,24 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeVector,
-				Result:     promql.Vector{},
+				Result: promql.Vector{
+					promql.Sample{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric2",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+						},
+						Point: promql.Point{
+							V: 1,
+							T: timestamp.FromTime(start),
+						},
+					},
+				},
 			},
 		},
 	},
@@ -852,6 +910,25 @@ var MyTokenQueryScenarios = map[string]Scenario{
 							},
 						},
 					},
+					promql.Series{
+						Points: []promql.Point{
+							{V: 1, T: timestamp.FromTime(start)},
+						},
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric1",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+							{
+								Name:  "namespace",
+								Value: "ns-c",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -866,7 +943,18 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeVector,
-				Result:     promql.Vector{},
+				Result: promql.Vector{promql.Sample{
+					Metric: []labels.Label{
+						{
+							Name:  "__name__",
+							Value: "test_metric_without_labels",
+						},
+					},
+					Point: promql.Point{
+						V: 1,
+						T: timestamp.FromTime(start),
+					},
+				}},
 			},
 		},
 	},
@@ -1019,6 +1107,27 @@ var MyTokenQueryScenarios = map[string]Scenario{
 							{V: 0, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
+					promql.Series{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric1",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+							{
+								Name:  "namespace",
+								Value: "ns-c",
+							},
+						},
+						Points: []promql.Point{
+							{V: 1, T: timestamp.FromTime(start)},
+							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						},
+					},
 				},
 			},
 		},
@@ -1036,7 +1145,29 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeMatrix,
-				Result:     promql.Matrix{},
+				Result: promql.Matrix{
+					promql.Series{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric1",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+							{
+								Name:  "namespace",
+								Value: "ns-c",
+							},
+						},
+						Points: []promql.Point{
+							{V: 1, T: timestamp.FromTime(start)},
+							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -1053,7 +1184,25 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeMatrix,
-				Result:     promql.Matrix{},
+				Result: promql.Matrix{
+					promql.Series{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric2",
+							},
+							{
+								Name:  "foo",
+								Value: "boo",
+							},
+						},
+						Points: []promql.Point{
+							{V: 1, T: timestamp.FromTime(start)},
+							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -1070,7 +1219,21 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Status: "success",
 			Data: &queryData{
 				ResultType: parser.ValueTypeMatrix,
-				Result:     promql.Matrix{},
+				Result: promql.Matrix{
+					promql.Series{
+						Metric: []labels.Label{
+							{
+								Name:  "__name__",
+								Value: "test_metric_without_labels",
+							},
+						},
+						Points: []promql.Point{
+							{V: 1, T: timestamp.FromTime(start)},
+							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						},
+					},
+				},
 			},
 		},
 	},

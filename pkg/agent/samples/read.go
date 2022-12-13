@@ -188,19 +188,7 @@ func SomeNamespacesTokenReadScenarios(t *testing.T) map[string]Scenario {
 }
 
 func MyTokenReadScenarios(t *testing.T) map[string]Scenario {
-	// clusterPrometheusLabel
-	clientLabelMatchers := func() []*labels.Matcher {
-		prometheusLabelMatcher, err := labels.NewMatcher(labels.MatchEqual, "prometheus", "project-level/test")
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		return []*labels.Matcher{
-			prometheusLabelMatcher,
-		}
-	}()
-
-	queries := mockQueries(t, clientLabelMatchers)
+	queries := mockQueries(t, nil)
 
 	return map[string]Scenario{
 		"avg(test_metric1)": {
@@ -220,6 +208,17 @@ func MyTokenReadScenarios(t *testing.T) map[string]Scenario {
 								{Value: 0, Timestamp: 0},
 							},
 						},
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "boo"},
+								{Name: "namespace", Value: "ns-c"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 1, Timestamp: 0},
+							},
+						},
 					},
 				},
 			},
@@ -228,14 +227,52 @@ func MyTokenReadScenarios(t *testing.T) map[string]Scenario {
 			PrompbQueries: queries[1],
 			RespCode:      http.StatusOK,
 			RespBody: []*prompb.QueryResult{
-				{},
+				{
+					Timeseries: []*prompb.TimeSeries{
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "boo"},
+								{Name: "namespace", Value: "ns-c"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 1, Timestamp: 0},
+							},
+						},
+					},
+				},
 			},
 		},
 		`sum({foo="boo"})`: {
 			PrompbQueries: queries[2],
 			RespCode:      http.StatusOK,
 			RespBody: []*prompb.QueryResult{
-				{},
+				{
+					Timeseries: []*prompb.TimeSeries{
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "boo"},
+								{Name: "namespace", Value: "ns-c"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 1, Timestamp: 0},
+							},
+						},
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric2"},
+								{Name: "foo", Value: "boo"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 1, Timestamp: 0},
+							},
+						},
+					},
+				},
 			},
 		},
 		"test_metric1[5m]": {
@@ -253,6 +290,17 @@ func MyTokenReadScenarios(t *testing.T) map[string]Scenario {
 							},
 							Samples: []prompb.Sample{
 								{Value: 0, Timestamp: 0},
+							},
+						},
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "boo"},
+								{Name: "namespace", Value: "ns-c"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 1, Timestamp: 0},
 							},
 						},
 					},

@@ -166,6 +166,10 @@ var MyTokenLabelScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []string{
 				"test_metric1",
+				"test_metric2",
+				"test_metric_old",
+				"test_metric_stale",
+				"test_metric_without_labels",
 			},
 		},
 	},
@@ -178,7 +182,7 @@ var MyTokenLabelScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []string{
 				"ns-a",
-				"ns-b",
+				"ns-c",
 			},
 		},
 	},

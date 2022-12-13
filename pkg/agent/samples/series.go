@@ -373,6 +373,7 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []labels.Labels{
 				labels.FromStrings("__name__", "test_metric1", "foo", "bar", "namespace", "ns-a"),
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
 			},
 		},
 	},
@@ -383,7 +384,9 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
+			},
 		},
 	},
 	"test_metric2{foo='boo'}": {
@@ -393,7 +396,9 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric2", "foo", "boo"),
+			},
 		},
 	},
 	"{foo='boo'}": {
@@ -403,7 +408,10 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
+				labels.FromStrings("__name__", "test_metric2", "foo", "boo"),
+			},
 		},
 	},
 	"two matches": {
@@ -413,7 +421,9 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
+			},
 		},
 	},
 	"two matches, but one is `none`": {
@@ -423,7 +433,9 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric2", "foo", "boo"),
+			},
 		},
 	},
 	"test_metric_without_labels": {
@@ -433,7 +445,9 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespCode: http.StatusOK,
 		RespBody: &jsonResponseData{
 			Status: "success",
-			Data:   []labels.Labels{},
+			Data: []labels.Labels{
+				labels.FromStrings("__name__", "test_metric_without_labels"),
+			},
 		},
 	},
 	"does_not_match_anything": {
@@ -481,6 +495,7 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []labels.Labels{
 				labels.FromStrings("__name__", "test_metric1", "foo", "bar", "namespace", "ns-a"),
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
 			},
 		},
 	},
@@ -495,6 +510,7 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []labels.Labels{
 				labels.FromStrings("__name__", "test_metric1", "foo", "bar", "namespace", "ns-a"),
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
 			},
 		},
 	},
@@ -509,6 +525,7 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 			Status: "success",
 			Data: []labels.Labels{
 				labels.FromStrings("__name__", "test_metric1", "foo", "bar", "namespace", "ns-a"),
+				labels.FromStrings("__name__", "test_metric1", "foo", "boo", "namespace", "ns-c"),
 			},
 		},
 	},
