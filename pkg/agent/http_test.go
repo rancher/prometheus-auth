@@ -36,6 +36,7 @@ import (
 	"github.com/rancher/prometheus-auth/pkg/data"
 	"github.com/rancher/prometheus-auth/pkg/kube"
 	"github.com/stretchr/testify/require"
+	authentication "k8s.io/api/authentication/v1"
 )
 
 type ScenarioType string
@@ -318,8 +319,13 @@ func mockAgent(t *testing.T) *agent {
 	}
 
 	return &agent{
-		cfg:        agtCfg,
+		cfg: agtCfg,
+		userInfo: authentication.UserInfo{
+			Username: "myUser",
+			UID:      "cluster-admin",
+		},
 		namespaces: mockOwnedNamespaces(),
+		tokens:     mockTokenAuth(),
 		remoteAPI:  promapiv1.NewAPI(promClient),
 	}
 }
@@ -504,6 +510,37 @@ func mockOwnedNamespaces() kube.Namespaces {
 		token2Namespaces: map[string]data.Set{
 			"noneNamespacesToken": {},
 			"someNamespacesToken": data.NewSet("ns-a", "ns-b"),
+		},
+	}
+}
+
+type fakeTokenAuth struct {
+	token2UserInfo map[string]authentication.UserInfo
+}
+
+func (f *fakeTokenAuth) Authenticate(token string) (authentication.UserInfo, error) {
+	userInfo, ok := f.token2UserInfo[token]
+	if !ok {
+		return userInfo, fmt.Errorf("user is not authenticated")
+	}
+	return userInfo, nil
+}
+
+func mockTokenAuth() kube.Tokens {
+	return &fakeTokenAuth{
+		token2UserInfo: map[string]authentication.UserInfo{
+			"myToken": authentication.UserInfo{
+				Username: "myUser",
+				UID:      "cluster-admin",
+			},
+			"someNamespacesToken": authentication.UserInfo{
+				Username: "someNamespacesUser",
+				UID:      "project-member",
+			},
+			"noneNamespacesToken": authentication.UserInfo{
+				Username: "noneNamespacesUser",
+				UID:      "cluster-member",
+			},
 		},
 	}
 }
