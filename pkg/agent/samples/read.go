@@ -186,3 +186,78 @@ func SomeNamespacesTokenReadScenarios(t *testing.T) map[string]Scenario {
 		},
 	}
 }
+
+func MyTokenReadScenarios(t *testing.T) map[string]Scenario {
+	// clusterPrometheusLabel
+	clientLabelMatchers := func() []*labels.Matcher {
+		prometheusLabelMatcher, err := labels.NewMatcher(labels.MatchEqual, "prometheus", "project-level/test")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		return []*labels.Matcher{
+			prometheusLabelMatcher,
+		}
+	}()
+
+	queries := mockQueries(t, clientLabelMatchers)
+
+	return map[string]Scenario{
+		"avg(test_metric1)": {
+			PrompbQueries: queries[0],
+			RespCode:      http.StatusOK,
+			RespBody: []*prompb.QueryResult{
+				{
+					Timeseries: []*prompb.TimeSeries{
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "bar"},
+								{Name: "namespace", Value: "ns-a"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 0, Timestamp: 0},
+							},
+						},
+					},
+				},
+			},
+		},
+		`count(test_metric1{namespace="ns-c"})`: {
+			PrompbQueries: queries[1],
+			RespCode:      http.StatusOK,
+			RespBody: []*prompb.QueryResult{
+				{},
+			},
+		},
+		`sum({foo="boo"})`: {
+			PrompbQueries: queries[2],
+			RespCode:      http.StatusOK,
+			RespBody: []*prompb.QueryResult{
+				{},
+			},
+		},
+		"test_metric1[5m]": {
+			PrompbQueries: queries[3],
+			RespCode:      http.StatusOK,
+			RespBody: []*prompb.QueryResult{
+				{
+					Timeseries: []*prompb.TimeSeries{
+						{
+							Labels: []prompb.Label{
+								{Name: "__name__", Value: "test_metric1"},
+								{Name: "foo", Value: "bar"},
+								{Name: "namespace", Value: "ns-a"},
+								{Name: "prometheus", Value: "cluster-level/test"},
+							},
+							Samples: []prompb.Sample{
+								{Value: 0, Timestamp: 0},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}

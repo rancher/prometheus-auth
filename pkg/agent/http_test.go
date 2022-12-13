@@ -132,6 +132,43 @@ func getTestCases(t *testing.T) []httpTestCase {
 			Token:      "someNamespacesToken",
 			Scenarios:  samples.SomeNamespacesTokenSeriesScenarios,
 		},
+		// myToken
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenSeriesScenarios,
+		},
 	}
 }
 

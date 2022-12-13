@@ -144,3 +144,75 @@ var SomeNamespacesTokenLabelScenarios = map[string]Scenario{
 		},
 	},
 }
+
+var MyTokenLabelScenarios = map[string]Scenario{
+	"bad value `invalid][query`": {
+		Params: map[string]string{
+			"name": "invalid][query",
+		},
+		RespCode: http.StatusBadRequest,
+		RespBody: &jsonResponseData{
+			Status:    "error",
+			ErrorType: "bad_data",
+			Error:     `invalid label name: "invalid][query"`,
+		},
+	},
+	"__name__": {
+		Params: map[string]string{
+			"name": "__name__",
+		},
+		RespCode: http.StatusOK,
+		RespBody: &jsonResponseData{
+			Status: "success",
+			Data: []string{
+				"test_metric1",
+			},
+		},
+	},
+	"namespace": {
+		Params: map[string]string{
+			"name": "namespace",
+		},
+		RespCode: http.StatusOK,
+		RespBody: &jsonResponseData{
+			Status: "success",
+			Data: []string{
+				"ns-a",
+				"ns-b",
+			},
+		},
+	},
+	"foo": {
+		Params: map[string]string{
+			"name": "foo",
+		},
+		RespCode: http.StatusOK,
+		RespBody: &jsonResponseData{
+			Status: "success",
+			Data: []string{
+				"bar",
+				"boo",
+			},
+		},
+	},
+	"does_not_match_anything": {
+		Params: map[string]string{
+			"name": "does_not_match_anything",
+		},
+		RespCode: http.StatusOK,
+		RespBody: &jsonResponseData{
+			Status: "success",
+			Data:   []string{},
+		},
+	},
+	"test_metric_without_labels": {
+		Params: map[string]string{
+			"name": "test_metric_without_labels",
+		},
+		RespCode: http.StatusOK,
+		RespBody: &jsonResponseData{
+			Status: "success",
+			Data:   []string{},
+		},
+	},
+}
