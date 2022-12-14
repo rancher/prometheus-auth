@@ -22,6 +22,7 @@ import (
 	"github.com/urfave/cli"
 	"golang.org/x/net/netutil"
 	"google.golang.org/grpc"
+	authentication "k8s.io/api/authentication/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -101,8 +102,10 @@ func (a *agentConfig) String() string {
 
 type agent struct {
 	cfg        *agentConfig
+	userInfo   authentication.UserInfo
 	listener   net.Listener
 	namespaces kube.Namespaces
+	tokens     kube.Tokens
 	remoteAPI  promapiv1.API
 }
 
@@ -181,10 +184,19 @@ func createAgent(cfg *agentConfig) (*agent, error) {
 		return nil, errors.Annotate(err, "unable to new Prometheus client")
 	}
 
+	// create tokens client and get userInfo
+	tokens := kube.NewTokens(cfg.ctx, k8sClient)
+	userInfo, err := tokens.Authenticate(cfg.myToken)
+	if err != nil {
+		return nil, errors.Annotate(err, "unable to get userInfo from agent token")
+	}
+
 	return &agent{
 		cfg:        cfg,
+		userInfo:   userInfo,
 		listener:   listener,
 		namespaces: kube.NewNamespaces(cfg.ctx, k8sClient),
+		tokens:     tokens,
 		remoteAPI:  promapiv1.NewAPI(promClient),
 	}, nil
 }

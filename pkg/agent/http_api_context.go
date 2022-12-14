@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/cockroachdb/cockroach/pkg/util/httputil"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/juju/errors"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"

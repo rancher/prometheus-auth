@@ -36,6 +36,7 @@ import (
 	"github.com/rancher/prometheus-auth/pkg/data"
 	"github.com/rancher/prometheus-auth/pkg/kube"
 	"github.com/stretchr/testify/require"
+	authentication "k8s.io/api/authentication/v1"
 )
 
 type ScenarioType string
@@ -130,6 +131,80 @@ func getTestCases(t *testing.T) []httpTestCase {
 			HTTPMethod: http.MethodGet,
 			Token:      "someNamespacesToken",
 			Scenarios:  samples.SomeNamespacesTokenSeriesScenarios,
+		},
+		// myToken
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "myToken",
+			Scenarios:  samples.MyTokenSeriesScenarios,
+		},
+		// unauthenticated
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "unauthenticated",
+			Scenarios:  samples.MyTokenSeriesScenarios,
 		},
 	}
 }
@@ -318,8 +393,13 @@ func mockAgent(t *testing.T) *agent {
 	}
 
 	return &agent{
-		cfg:        agtCfg,
+		cfg: agtCfg,
+		userInfo: authentication.UserInfo{
+			Username: "myUser",
+			UID:      "cluster-admin",
+		},
 		namespaces: mockOwnedNamespaces(),
+		tokens:     mockTokenAuth(),
 		remoteAPI:  promapiv1.NewAPI(promClient),
 	}
 }
@@ -335,6 +415,15 @@ type ScenarioValidator struct {
 func (v ScenarioValidator) Validate(t *testing.T, handler http.Handler) {
 	res := v.executeRequest(t, handler)
 	if res == nil {
+		return
+	}
+
+	// Validate unauthenticated user
+	if v.Token == "unauthenticated" {
+		// unauthenticated user
+		if got := res.Code; got != http.StatusUnauthorized {
+			t.Errorf("[series] [GET] token %q scenario %q: got code %d, want %d for unauthenticated users", v.Token, v.Name, got, http.StatusUnauthorized)
+		}
 		return
 	}
 
@@ -452,6 +541,8 @@ func (v ScenarioValidator) validateProtoBody(t *testing.T, res *httptest.Respons
 		t.Fatal(err)
 	}
 
+	sortReadResponse(&protoRes)
+
 	if got, want := protoRes.Results, v.Scenario.RespBody; !reflect.DeepEqual(got, want) {
 		t.Errorf("[%s] [%s] token %q scenario %q: got body\n%v\n, want\n%v\n", v.Type, v.Method, v.Token, v.Name, got, want)
 	}
@@ -491,6 +582,39 @@ func jsonResponseBody(body interface{}) string {
 	return string(respBytes)
 }
 
+type SortableTimeSeries []*prompb.TimeSeries
+
+func (s SortableTimeSeries) Len() int {
+	return len(s)
+}
+
+func (s SortableTimeSeries) Less(i, j int) bool {
+	k := 0
+	for k < len(s[i].Labels) && k < len(s[j].Labels) {
+		// compare keys
+		if s[i].Labels[k].Name != s[j].Labels[k].Name {
+			return s[i].Labels[k].Name < s[j].Labels[k].Name
+		}
+		// compare values
+		if s[i].Labels[k].Value != s[j].Labels[k].Value {
+			return s[i].Labels[k].Value < s[j].Labels[k].Value
+		}
+		k += 1
+	}
+	// default to preserving order
+	return true
+}
+
+func (s SortableTimeSeries) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func sortReadResponse(rr *prompb.ReadResponse) {
+	for _, q := range rr.Results {
+		sort.Sort(SortableTimeSeries(q.Timeseries))
+	}
+}
+
 type fakeOwnedNamespaces struct {
 	token2Namespaces map[string]data.Set
 }
@@ -504,6 +628,37 @@ func mockOwnedNamespaces() kube.Namespaces {
 		token2Namespaces: map[string]data.Set{
 			"noneNamespacesToken": {},
 			"someNamespacesToken": data.NewSet("ns-a", "ns-b"),
+		},
+	}
+}
+
+type fakeTokenAuth struct {
+	token2UserInfo map[string]authentication.UserInfo
+}
+
+func (f *fakeTokenAuth) Authenticate(token string) (authentication.UserInfo, error) {
+	userInfo, ok := f.token2UserInfo[token]
+	if !ok {
+		return userInfo, fmt.Errorf("user is not authenticated")
+	}
+	return userInfo, nil
+}
+
+func mockTokenAuth() kube.Tokens {
+	return &fakeTokenAuth{
+		token2UserInfo: map[string]authentication.UserInfo{
+			"myToken": authentication.UserInfo{
+				Username: "myUser",
+				UID:      "cluster-admin",
+			},
+			"someNamespacesToken": authentication.UserInfo{
+				Username: "someNamespacesUser",
+				UID:      "project-member",
+			},
+			"noneNamespacesToken": authentication.UserInfo{
+				Username: "noneNamespacesUser",
+				UID:      "cluster-member",
+			},
 		},
 	}
 }

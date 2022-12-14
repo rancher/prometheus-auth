@@ -244,3 +244,166 @@ test_metric1{foo="bar",namespace="ns-a",instance="",prometheus="cluster-level/te
 		RespBody: ``,
 	},
 }
+
+var MyTokenFederateScenarios = map[string]Scenario{
+	"empty": {
+		Queries:  url.Values{},
+		RespCode: http.StatusOK,
+		RespBody: ``,
+	},
+	"match nothing": {
+		Queries: url.Values{
+			"match[]": []string{"does_not_match_anything"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: ``,
+	},
+	"invalid Params from the beginning": {
+		Queries: url.Values{
+			"match[]": []string{"-not-a-valid-metric-name"},
+		},
+		RespCode: http.StatusBadRequest,
+		RespBody: `1:1: parse error: unexpected <op:->
+`,
+	},
+	"invalid Params somewhere in the middle": {
+		Queries: url.Values{
+			"match[]": []string{"not-a-valid-metric-name"},
+		},
+		RespCode: http.StatusBadRequest,
+		RespBody: `1:4: parse error: unexpected <op:->
+`,
+	},
+	"test_metric1": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric1"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="bar",namespace="ns-a",instance="",prometheus="cluster-level/test"} 10000 6000000
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+`,
+	},
+	"test_metric2": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric2"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+`,
+	},
+	"test_metric_without_labels": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric_without_labels"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric_without_labels untyped
+test_metric_without_labels{instance="",prometheus="cluster-level/test"} 1001 6000000
+`,
+	},
+	"test_stale_metric": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric_stale"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: ``,
+	},
+	"test_old_metric": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric_old"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric_old untyped
+test_metric_old{instance="",prometheus="cluster-level/test"} 981 5880000
+`,
+	},
+	"{foo='boo'}": {
+		Queries: url.Values{
+			"match[]": []string{"{foo='boo'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+`,
+	},
+	"{namespace='ns-c'}": {
+		Queries: url.Values{
+			"match[]": []string{"{namespace='ns-c'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+`,
+	},
+	"two matchers": {
+		Queries: url.Values{
+			"match[]": []string{"test_metric1", "test_metric2"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="bar",namespace="ns-a",instance="",prometheus="cluster-level/test"} 10000 6000000
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+`,
+	},
+	"everything": {
+		Queries: url.Values{
+			"match[]": []string{"{__name__=~'.+'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="bar",namespace="ns-a",instance="",prometheus="cluster-level/test"} 10000 6000000
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric_old untyped
+test_metric_old{instance="",prometheus="cluster-level/test"} 981 5880000
+# TYPE test_metric_without_labels untyped
+test_metric_without_labels{instance="",prometheus="cluster-level/test"} 1001 6000000
+`,
+	},
+	"empty existing label value matches everything that doesn't have that label": {
+		Queries: url.Values{
+			"match[]": []string{"{foo='',__name__=~'.+'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric_old untyped
+test_metric_old{instance="",prometheus="cluster-level/test"} 981 5880000
+# TYPE test_metric_without_labels untyped
+test_metric_without_labels{instance="",prometheus="cluster-level/test"} 1001 6000000
+`,
+	},
+	"empty none-existing label value matches everything": {
+		Queries: url.Values{
+			"match[]": []string{"{bar='',__name__=~'.+'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric1 untyped
+test_metric1{foo="bar",namespace="ns-a",instance="",prometheus="cluster-level/test"} 10000 6000000
+test_metric1{foo="boo",namespace="ns-c",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric_old untyped
+test_metric_old{instance="",prometheus="cluster-level/test"} 981 5880000
+# TYPE test_metric_without_labels untyped
+test_metric_without_labels{instance="",prometheus="cluster-level/test"} 1001 6000000
+`,
+	},
+	"empty `namespace` label value matches everything that doesn't have `namespace` label": {
+		Queries: url.Values{
+			"match[]": []string{"{namespace='',__name__=~'.+'}"},
+		},
+		RespCode: http.StatusOK,
+		RespBody: `# TYPE test_metric2 untyped
+test_metric2{foo="boo",instance="",prometheus="cluster-level/test"} 1 6000000
+# TYPE test_metric_old untyped
+test_metric_old{instance="",prometheus="cluster-level/test"} 981 5880000
+# TYPE test_metric_without_labels untyped
+test_metric_without_labels{instance="",prometheus="cluster-level/test"} 1001 6000000
+`,
+	},
+}

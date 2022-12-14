@@ -9,8 +9,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/juju/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rancher/prometheus-auth/pkg/kube"
 	log "github.com/sirupsen/logrus"
+	authentication "k8s.io/api/authentication/v1"
 )
 
 func (a *agent) httpBackend() http.Handler {
@@ -59,14 +62,25 @@ func accessControl(agt *agent, proxyHandler http.Handler) http.Handler {
 
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var userInfo authentication.UserInfo
+			var err error
 			accessToken := strings.TrimPrefix(r.Header.Get(authorizationHeaderKey), "Bearer ")
+
+			// try to authenticate the access token
 			if len(accessToken) == 0 {
-				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				err = errors.New("no access token provided")
+			} else {
+				userInfo, err = agt.tokens.Authenticate(accessToken)
+			}
+
+			if err != nil {
+				// either not token was provided or user is unauthenticated with k8s API
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
 			// direct proxy
-			if agt.cfg.myToken == accessToken {
+			if kube.MatchingUsers(agt.userInfo, userInfo) {
 				proxyHandler.ServeHTTP(w, r)
 				return
 			}
