@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -36,6 +37,102 @@ import (
 	"github.com/rancher/prometheus-auth/pkg/kube"
 	"github.com/stretchr/testify/require"
 )
+
+type ScenarioType string
+
+const (
+	FederateScenario ScenarioType = "federate"
+	LabelScenario    ScenarioType = "label"
+	QueryScenario    ScenarioType = "query"
+	ReadScenario     ScenarioType = "read"
+	SeriesScenario   ScenarioType = "series"
+)
+
+type httpTestCase struct {
+	Type       ScenarioType
+	HTTPMethod string
+	Token      string
+	Scenarios  map[string]samples.Scenario
+}
+
+func getTestCases(t *testing.T) []httpTestCase {
+	return []httpTestCase{
+		// noneNamespacesToken
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "noneNamespacesToken",
+			Scenarios:  samples.NoneNamespacesTokenSeriesScenarios,
+		},
+		// someNamespacesToken
+		{
+			Type:       FederateScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenFederateScenarios,
+		},
+		{
+			Type:       LabelScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenLabelScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenQueryScenarios,
+		},
+		{
+			Type:       QueryScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenQueryScenarios,
+		},
+		{
+			Type:       ReadScenario,
+			HTTPMethod: http.MethodPost,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenReadScenarios(t),
+		},
+		{
+			Type:       SeriesScenario,
+			HTTPMethod: http.MethodGet,
+			Token:      "someNamespacesToken",
+			Scenarios:  samples.SomeNamespacesTokenSeriesScenarios,
+		},
+	}
+}
 
 func Test_accessControl(t *testing.T) {
 	// all namespaceSet : ns-a, ns-b, ns-c
@@ -119,184 +216,22 @@ func Test_accessControl(t *testing.T) {
 
 	agt := mockAgent(t)
 	httpBackend := agt.httpBackend()
-
-	func() {
-		t.Log("federate testing begin ...")
-
-		tokenScenariosMap := map[string]map[string]samples.Scenario{
-			"noneNamespacesToken": samples.NoneNamespacesTokenFederateScenarios,
-			"someNamespacesToken": samples.SomeNamespacesTokenFederateScenarios,
-		}
-
-		for token, tokenScenarios := range tokenScenariosMap {
-			for name, tokenScenario := range tokenScenarios {
-				req := httptest.NewRequest("GET", "http://example.org/federate?"+tokenScenario.Queries.Encode(), nil)
-				req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-				res := httptest.NewRecorder()
-				httpBackend.ServeHTTP(res, req)
-				if got, want := res.Code, tokenScenario.RespCode; got != want {
-					t.Errorf("[federate] [GET ] token %q scenario %q: got code %d, want %d", token, name, got, want)
-				}
-				if got, want := normalizeResponseBody(res.Body), tokenScenario.RespBody; got != want {
-					t.Errorf("[federate] [GET ] token %q scenario %q: got body\n%s\n, want\n%s\n", token, name, got, want)
-				}
+	for _, tc := range getTestCases(t) {
+		tcName := fmt.Sprintf("%s/%s/%s", tc.Type, tc.HTTPMethod, tc.Token)
+		// Run each test case
+		t.Run(tcName, func(t *testing.T) {
+			for name, tokenScenario := range tc.Scenarios {
+				// Run each scenario within a test case
+				ScenarioValidator{
+					Name:     name,
+					Type:     tc.Type,
+					Method:   tc.HTTPMethod,
+					Token:    tc.Token,
+					Scenario: &tokenScenario,
+				}.Validate(t, httpBackend)
 			}
-
-		}
-
-		t.Log("...federate testing end")
-	}()
-
-	func() {
-		t.Log("label testing begin ...")
-
-		tokenScenariosMap := map[string]map[string]samples.Scenario{
-			"noneNamespacesToken": samples.NoneNamespacesTokenLabelScenarios,
-			"someNamespacesToken": samples.SomeNamespacesTokenLabelScenarios,
-		}
-
-		for token, tokenScenarios := range tokenScenariosMap {
-			for name, tokenScenario := range tokenScenarios {
-				req := httptest.NewRequest("GET", "http://example.org/api/v1/label/"+tokenScenario.Params["name"]+"/values", nil)
-				req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-				res := httptest.NewRecorder()
-				httpBackend.ServeHTTP(res, req)
-				if got, want := res.Code, tokenScenario.RespCode; got != want {
-					t.Errorf("[label] [GET ] token %q scenario %q: got code %d, want %d", token, name, got, want)
-				}
-				if got, want := string(res.Body.Bytes()), jsonResponseBody(tokenScenario.RespBody); got != want {
-					t.Errorf("[label] [GET ] token %q scenario %q: got body\n%s\n, want\n%s\n", token, name, got, want)
-				}
-			}
-
-		}
-
-		t.Log("...label testing end")
-	}()
-
-	func() {
-		t.Log("query testing begin ...")
-
-		tokenScenariosMap := map[string]map[string]samples.Scenario{
-			"noneNamespacesToken": samples.NoneNamespacesTokenQueryScenarios,
-			"someNamespacesToken": samples.SomeNamespacesTokenQueryScenarios,
-		}
-
-		for token, tokenScenarios := range tokenScenariosMap {
-			for name, tokenScenario := range tokenScenarios {
-				// GET
-				func(tokenScenario *samples.Scenario, token string, name string) {
-					req := httptest.NewRequest("GET", "http://example.org/api/v1"+tokenScenario.Endpoint+"?"+tokenScenario.Queries.Encode(), nil)
-					req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-					res := httptest.NewRecorder()
-					httpBackend.ServeHTTP(res, req)
-					if got, want := res.Code, tokenScenario.RespCode; got != want {
-						t.Errorf("[query] [GET ] token %q scenario %q: got code %d, want %d", token, name, got, want)
-					}
-					if got, want := string(res.Body.Bytes()), jsonResponseBody(tokenScenario.RespBody); got != want {
-						t.Errorf("[query] [GET ] token %q scenario %q: got body\n%s\n, want\n%s\n", token, name, got, want)
-					}
-				}(&tokenScenario, token, name)
-
-				// POST
-				func(tokenScenario *samples.Scenario, token string, name string) {
-					req := httptest.NewRequest("POST", "http://example.org/api/v1"+tokenScenario.Endpoint, strings.NewReader(tokenScenario.Queries.Encode()))
-					req.Header.Set(httputil.ContentTypeHeader, "application/x-www-form-urlencoded")
-					req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-					res := httptest.NewRecorder()
-					httpBackend.ServeHTTP(res, req)
-					if got, want := res.Code, tokenScenario.RespCode; got != want {
-						t.Errorf("[query] [POST] token %q scenario %q: got code %d, want %d", token, name, got, want)
-					}
-					if got, want := string(res.Body.Bytes()), jsonResponseBody(tokenScenario.RespBody); got != want {
-						t.Errorf("[query] [POST] token %q scenario %q: got body\n%s\n, want\n%s\n", token, name, got, want)
-					}
-				}(&tokenScenario, token, name)
-			}
-
-		}
-
-		t.Log("...query testing end")
-	}()
-
-	func() {
-		t.Log("read testing begin ...")
-
-		tokenScenariosMap := map[string]map[string]samples.Scenario{
-			"noneNamespacesToken": samples.NoneNamespacesTokenReadScenarios(t),
-			"someNamespacesToken": samples.SomeNamespacesTokenReadScenarios(t),
-		}
-
-		for token, tokenScenarios := range tokenScenariosMap {
-			for name, tokenScenario := range tokenScenarios {
-				// raw -> proto request
-				protoReq := &prompb.ReadRequest{Queries: tokenScenario.PrompbQueries}
-				protoReqData, err := proto.Marshal(protoReq)
-				if err != nil {
-					t.Fatal(err)
-				}
-				compressedProtoReqData := snappy.Encode(nil, protoReqData)
-
-				req := httptest.NewRequest("POST", "http://example.org/api/v1/read", bytes.NewBuffer(compressedProtoReqData))
-				req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-				res := httptest.NewRecorder()
-				httpBackend.ServeHTTP(res, req)
-
-				if got, want := res.Code, tokenScenario.RespCode; got != want {
-					t.Errorf("[read] [POST] token %q scenario %q: got code %d, want %d", token, name, got, want)
-				}
-
-				// proto response -> raw
-				compressedProtoResData, err := ioutil.ReadAll(res.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
-				protoResData, err := snappy.Decode(nil, compressedProtoResData)
-				if err != nil {
-					t.Fatal(err)
-				}
-				var protoRes prompb.ReadResponse
-				err = proto.Unmarshal(protoResData, &protoRes)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if got, want := protoRes.Results, tokenScenario.RespBody; !reflect.DeepEqual(got, want) {
-					t.Errorf("[read] [POST] token %q scenario %q: got body\n%v\n, want\n%v\n", token, name, got, want)
-				}
-			}
-
-		}
-
-		t.Log("...read testing end")
-	}()
-
-	func() {
-		t.Log("series testing begin ...")
-
-		tokenScenariosMap := map[string]map[string]samples.Scenario{
-			"noneNamespacesToken": samples.NoneNamespacesTokenSeriesScenarios,
-			"someNamespacesToken": samples.SomeNamespacesTokenSeriesScenarios,
-		}
-
-		for token, tokenScenarios := range tokenScenariosMap {
-			for name, tokenScenario := range tokenScenarios {
-				req := httptest.NewRequest("GET", "http://example.org/api/v1/series?"+tokenScenario.Queries.Encode(), nil)
-				req.Header.Set(authorizationHeaderKey, fmt.Sprintf("Bearer %s", token))
-				res := httptest.NewRecorder()
-				httpBackend.ServeHTTP(res, req)
-				if got, want := res.Code, tokenScenario.RespCode; got != want {
-					t.Errorf("[series] [GET] token %q scenario %q: got code %d, want %d", token, name, got, want)
-				}
-				if got, want := string(res.Body.Bytes()), jsonResponseBody(tokenScenario.RespBody); got != want {
-					t.Errorf("[series] [GET] token %q scenario %q: got body\n%s\n, want\n%s\n", token, name, got, want)
-				}
-			}
-
-		}
-
-		t.Log("...series testing end")
-	}()
+		})
+	}
 }
 
 func startPrometheusWebHandler(t *testing.T, webHandler *promweb.Handler) {
@@ -386,6 +321,145 @@ func mockAgent(t *testing.T) *agent {
 		cfg:        agtCfg,
 		namespaces: mockOwnedNamespaces(),
 		remoteAPI:  promapiv1.NewAPI(promClient),
+	}
+}
+
+type ScenarioValidator struct {
+	Name     string
+	Type     ScenarioType
+	Method   string
+	Token    string
+	Scenario *samples.Scenario
+}
+
+func (v ScenarioValidator) Validate(t *testing.T, handler http.Handler) {
+	res := v.executeRequest(t, handler)
+	if res == nil {
+		return
+	}
+
+	// Validate response code
+	if got, want := res.Code, v.Scenario.RespCode; got != want {
+		t.Errorf("[series] [GET] token %q scenario %q: got code %d, want %d", v.Token, v.Name, got, want)
+	}
+
+	// Validate response
+	switch v.Type {
+	case FederateScenario:
+		v.validateTextBody(t, res)
+	case ReadScenario:
+		v.validateProtoBody(t, res)
+	default:
+		v.validateJSONBody(t, res)
+	}
+}
+
+func (v ScenarioValidator) executeRequest(t *testing.T, handler http.Handler) *httptest.ResponseRecorder {
+	url := "http://example.org" // base url that federator is expected to be hosted at
+	headers := map[string]string{
+		authorizationHeaderKey: fmt.Sprintf("Bearer %s", v.Token),
+	}
+	var body io.Reader
+
+	switch v.Type {
+	case FederateScenario:
+		switch v.Method {
+		case http.MethodGet:
+			url = fmt.Sprintf("%s/federate?%s", url, v.Scenario.Queries.Encode())
+		default:
+			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+			return nil
+		}
+	case LabelScenario:
+		switch v.Method {
+		case http.MethodGet:
+			url = fmt.Sprintf("%s/api/v1/label/%s/values", url, v.Scenario.Params["name"])
+		default:
+			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+			return nil
+		}
+	case QueryScenario:
+		switch v.Method {
+		case http.MethodGet:
+			url = fmt.Sprintf("%s/api/v1%s?%s", url, v.Scenario.Endpoint, v.Scenario.Queries.Encode())
+		case http.MethodPost:
+			url = fmt.Sprintf("%s/api/v1%s", url, v.Scenario.Endpoint)
+			body = strings.NewReader(v.Scenario.Queries.Encode())
+			headers[httputil.ContentTypeHeader] = "application/x-www-form-urlencoded"
+		default:
+			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+			return nil
+		}
+	case ReadScenario:
+		switch v.Method {
+		case http.MethodPost:
+			url = fmt.Sprintf("%s/api/v1/read", url)
+			// raw -> proto request
+			protoReq := &prompb.ReadRequest{Queries: v.Scenario.PrompbQueries}
+			protoReqData, err := proto.Marshal(protoReq)
+			if err != nil {
+				t.Fatal(err)
+			}
+			compressedProtoReqData := snappy.Encode(nil, protoReqData)
+			body = bytes.NewBuffer(compressedProtoReqData)
+		default:
+			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+			return nil
+		}
+	case SeriesScenario:
+		switch v.Method {
+		case http.MethodGet:
+			url = fmt.Sprintf("%s/api/v1/series?%s", url, v.Scenario.Queries.Encode())
+		default:
+			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+			return nil
+		}
+	default:
+		t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
+		return nil
+	}
+
+	// Execute request
+	req := httptest.NewRequest(v.Method, url, body)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	return res
+}
+
+func (v ScenarioValidator) validateTextBody(t *testing.T, res *httptest.ResponseRecorder) {
+	if got, want := normalizeResponseBody(res.Body), v.Scenario.RespBody; got != want {
+		t.Errorf("[%s] [%s] token %q scenario %q: got body\n%s\n, want\n%s\n", v.Type, v.Method, v.Token, v.Name, got, want)
+	}
+}
+
+func (v ScenarioValidator) validateProtoBody(t *testing.T, res *httptest.ResponseRecorder) {
+	// proto response -> raw
+	compressedProtoResData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	protoResData, err := snappy.Decode(nil, compressedProtoResData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var protoRes prompb.ReadResponse
+	err = proto.Unmarshal(protoResData, &protoRes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := protoRes.Results, v.Scenario.RespBody; !reflect.DeepEqual(got, want) {
+		t.Errorf("[%s] [%s] token %q scenario %q: got body\n%v\n, want\n%v\n", v.Type, v.Method, v.Token, v.Name, got, want)
+	}
+}
+
+func (v ScenarioValidator) validateJSONBody(t *testing.T, res *httptest.ResponseRecorder) {
+	if got, want := string(res.Body.Bytes()), jsonResponseBody(v.Scenario.RespBody); got != want {
+		t.Errorf("[%s] [%s] token %q scenario %q: got body\n%s\n, want\n%s\n", v.Type, v.Method, v.Token, v.Name, got, want)
 	}
 }
 
