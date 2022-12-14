@@ -541,6 +541,8 @@ func (v ScenarioValidator) validateProtoBody(t *testing.T, res *httptest.Respons
 		t.Fatal(err)
 	}
 
+	sortReadResponse(&protoRes)
+
 	if got, want := protoRes.Results, v.Scenario.RespBody; !reflect.DeepEqual(got, want) {
 		t.Errorf("[%s] [%s] token %q scenario %q: got body\n%v\n, want\n%v\n", v.Type, v.Method, v.Token, v.Name, got, want)
 	}
@@ -578,6 +580,39 @@ func jsonResponseBody(body interface{}) string {
 	}
 
 	return string(respBytes)
+}
+
+type SortableTimeSeries []*prompb.TimeSeries
+
+func (s SortableTimeSeries) Len() int {
+	return len(s)
+}
+
+func (s SortableTimeSeries) Less(i, j int) bool {
+	k := 0
+	for k < len(s[i].Labels) && k < len(s[j].Labels) {
+		// compare keys
+		if s[i].Labels[k].Name != s[j].Labels[k].Name {
+			return s[i].Labels[k].Name < s[j].Labels[k].Name
+		}
+		// compare values
+		if s[i].Labels[k].Value != s[j].Labels[k].Value {
+			return s[i].Labels[k].Value < s[j].Labels[k].Value
+		}
+		k += 1
+	}
+	// default to preserving order
+	return true
+}
+
+func (s SortableTimeSeries) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func sortReadResponse(rr *prompb.ReadResponse) {
+	for _, q := range rr.Results {
+		sort.Sort(SortableTimeSeries(q.Timeseries))
+	}
 }
 
 type fakeOwnedNamespaces struct {
