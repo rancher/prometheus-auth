@@ -361,7 +361,7 @@ var MyTokenSeriesScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `1:8: parse error: unexpected right bracket ']'`,
+			Error:     `invalid parameter "match[]": 1:8: parse error: unexpected right bracket ']'`,
 		},
 	},
 	"test_metric1": {

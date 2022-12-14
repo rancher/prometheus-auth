@@ -756,7 +756,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `1:8: parse error: unexpected right bracket ']'`,
+			Error:     `invalid parameter "query": 1:8: parse error: unexpected right bracket ']'`,
 		},
 	},
 	"query - test_metric1": {
@@ -1009,7 +1009,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `cannot parse "" to a valid timestamp`,
+			Error:     `invalid parameter "start": cannot parse "" to a valid timestamp`,
 		},
 	},
 	"query_range - bad query `invalid][query`": {
@@ -1039,7 +1039,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `zero or negative query resolution step widths are not accepted. Try a positive integer`,
+			Error:     `invalid parameter "step": zero or negative query resolution step widths are not accepted. Try a positive integer`,
 		},
 	},
 	"query_range - start after end": {
@@ -1054,7 +1054,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `end timestamp must not be before start time`,
+			Error:     `invalid parameter "end": end timestamp must not be before start time`,
 		},
 	},
 	"query_range - start overflows int64 internally": {
@@ -1069,7 +1069,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     "end timestamp must not be before start time",
+			Error:     `invalid parameter "end": end timestamp must not be before start time`,
 		},
 	},
 	"query_range - test_metric1": {
