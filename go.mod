@@ -1,6 +1,6 @@
 module github.com/rancher/prometheus-auth
 
-go 1.17
+go 1.19
 
 replace (
 	k8s.io/api => k8s.io/api v0.21.0
@@ -13,7 +13,6 @@ require (
 	github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292
 	github.com/cockroachdb/cockroach v0.0.0-20170608034007-84bc9597164f
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/gorilla/mux v1.7.3
 	github.com/json-iterator/go v1.1.11
@@ -60,6 +59,7 @@ require (
 	github.com/go-openapi/validate v0.20.2 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
