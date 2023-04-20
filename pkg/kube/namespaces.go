@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/juju/errors"
 	"github.com/rancher/prometheus-auth/pkg/data"
 	log "github.com/sirupsen/logrus"
@@ -54,7 +55,7 @@ func (n *namespaces) query(token string) (data.Set, error) {
 
 	nsObj, exist, _ := n.namespaceIndexer.GetByKey(tokenNamespace)
 	if !exist {
-		return ret, errors.New("unknown namespace of token")
+		return ret, errors.New("unknown namespace of token " + tokenNamespace)
 	}
 
 	ns := toNamespace(nsObj)
@@ -80,27 +81,33 @@ func (n *namespaces) query(token string) (data.Set, error) {
 }
 
 func (n *namespaces) validate(token string) (string, error) {
-	secList, err := n.secretIndexer.ByIndex(byTokenIndex, token)
-	if err != nil || len(secList) != 1 {
-		return "", errors.Annotatef(err, "unknown token")
-	}
-
-	sec := toSecret(secList[0])
-	if sec.DeletionTimestamp != nil {
-		return "", errors.New("deleting token")
+	claimNamespace := ""
+	// parse token
+	tokenJwt, _ := jwt.Parse(token, nil)
+	claims, _ := tokenJwt.Claims.(jwt.MapClaims)
+	// investigate token type
+	switch claims["iss"] {
+	// bound token
+	case "rke":
+		claimNamespace = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
+	// legacy token
+	case "kubernetes/serviceaccount":
+		claimNamespace = claims["kubernetes.io/serviceaccount/namespace"].(string)
+	default:
+		return "", errors.New("unknown token claim")
 	}
 
 	_, exist := n.reviewResultTTLCache.Get(token)
 	if exist {
-		return sec.Namespace, nil
+		return claimNamespace, nil
 	}
 
 	projectMonitoringServiceAccountName := "project-monitoring"
-	sarUser := fmt.Sprintf("system:serviceaccount:%s:%s", sec.Namespace, projectMonitoringServiceAccountName)
+	sarUser := fmt.Sprintf("system:serviceaccount:%s:%s", claimNamespace, projectMonitoringServiceAccountName)
 	sar := &authorization.SubjectAccessReview{
 		Spec: authorization.SubjectAccessReviewSpec{
 			ResourceAttributes: &authorization.ResourceAttributes{
-				Namespace: sec.Namespace,
+				Namespace: claimNamespace,
 				Verb:      "view",
 				Group:     "monitoring.cattle.io",
 				Resource:  "prometheus",
@@ -119,7 +126,7 @@ func (n *namespaces) validate(token string) (string, error) {
 
 	n.reviewResultTTLCache.Add(token, struct{}{}, 5*time.Minute)
 
-	return sec.Namespace, nil
+	return claimNamespace, nil
 }
 
 func NewNamespaces(ctx context.Context, k8sClient kubernetes.Interface) Namespaces {
