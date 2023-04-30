@@ -90,6 +90,9 @@ func (n *namespaces) validate(token string) (string, error) {
 	// bound token
 	case "rke":
 		claimNamespace = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
+	// k3s
+	case "https://kubernetes.default.svc.cluster.local":
+		claimNamespace = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
 	// legacy token
 	case "kubernetes/serviceaccount":
 		claimNamespace = claims["kubernetes.io/serviceaccount/namespace"].(string)
