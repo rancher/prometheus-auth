@@ -189,6 +189,9 @@ func toSecret(obj interface{}) *core.Secret {
 
 func getProjectID(ns *core.Namespace) (string, bool) {
 	if ns != nil && ns.Labels != nil {
+		projectIdentifier, exist := ns.Labels["caas.telekom.de/multiprojectkey"]
+		if exist {
+			return projectIdentifier, true
 		projectID, exist := ns.Labels["field.cattle.io/projectId"]
 		if exist {
 			return projectID, true
