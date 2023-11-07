@@ -192,6 +192,7 @@ func getProjectID(ns *core.Namespace) (string, bool) {
 		projectIdentifier, exist := ns.Labels["caas.telekom.de/multiprojectkey"]
 		if exist {
 			return projectIdentifier, true
+		}
 		projectID, exist := ns.Labels["field.cattle.io/projectId"]
 		if exist {
 			return projectID, true
