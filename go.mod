@@ -23,7 +23,7 @@ require (
 	github.com/prometheus/client_model v0.3.0
 	github.com/prometheus/common v0.38.0
 	github.com/prometheus/prometheus v1.8.2-0.20210701133801-b0944590a1c9
-	github.com/sirupsen/logrus v1.6.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.1
 	github.com/urfave/cli v1.22.1
 	golang.org/x/net v0.7.0
@@ -112,4 +112,3 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-exclude github.com/go-logr/logr v1.0.0
