@@ -1,7 +1,7 @@
 package prom
 
 import (
-	promlb "github.com/prometheus/prometheus/pkg/labels"
+	promlb "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/rancher/prometheus-auth/pkg/data"
 )

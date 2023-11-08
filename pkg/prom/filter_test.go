@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/juju/errors"
-	"github.com/prometheus/prometheus/pkg/labels"
+	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/rancher/prometheus-auth/pkg/data"
 )

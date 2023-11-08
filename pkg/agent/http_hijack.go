@@ -12,7 +12,7 @@ import (
 	"github.com/golang/snappy"
 	"github.com/juju/errors"
 	prommodel "github.com/prometheus/common/model"
-	promlb "github.com/prometheus/prometheus/pkg/labels"
+	promlb "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/promql/parser"
@@ -96,9 +96,6 @@ func hijackQuery(apiCtx *apiContext) error {
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {
 		var qs *stats.QueryStats
-		if len(req.FormValue("stats")) != 0 {
-			qs = stats.NewQueryStats(stats.NewQueryTimers())
-		}
 
 		if queryExpr.Type() != parser.ValueTypeScalar {
 			var val parser.Value
@@ -197,9 +194,6 @@ func hijackQueryRange(apiCtx *apiContext) error {
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {
 		var qs *stats.QueryStats
-		if len(req.FormValue("stats")) != 0 {
-			qs = stats.NewQueryStats(stats.NewQueryTimers())
-		}
 
 		if queryExpr.Type() != parser.ValueTypeScalar {
 			var val parser.Value
