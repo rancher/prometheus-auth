@@ -1,5 +1,3 @@
-//go:build test
-
 package prom
 
 import (
@@ -20,7 +18,7 @@ var metrics = []struct {
 	{
 		"not label",
 		`a`,
-		`a{namespace=~"ns-a|ns-b|rx-c"}`,
+		`a{caas.telekom.de/clustermetric="entsoe",namespace=~"ns-a|ns-b|rx-c"}`,
 	},
 	{
 		"none namespace label",

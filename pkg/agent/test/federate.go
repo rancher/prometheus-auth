@@ -1,6 +1,4 @@
-//go:build test
-
-package samples
+package test
 
 import (
 	"net/http"

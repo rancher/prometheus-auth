@@ -1,6 +1,4 @@
-//go:build test
-
-package samples
+package test
 
 import (
 	"net/http"
@@ -155,10 +153,10 @@ var NoneNamespacesTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 						Metric: nil,
 					},
@@ -402,10 +400,8 @@ var SomeNamespacesTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-a",
 							},
 						},
-						Point: promql.Point{
-							V: 0,
-							T: timestamp.FromTime(start),
-						},
+						F: 0,
+						T: timestamp.FromTime(start),
 					},
 				},
 			},
@@ -451,8 +447,10 @@ var SomeNamespacesTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
+						Floats: []promql.FPoint{{
+							T: timestamp.FromTime(start),
+							F: 0,
+						},
 						},
 						Metric: []labels.Label{
 							{
@@ -516,10 +514,10 @@ var SomeNamespacesTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 						Metric: nil,
 					},
@@ -630,10 +628,10 @@ var SomeNamespacesTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-a",
 							},
 						},
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
-							{V: 0, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 0, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
+							{F: 0, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 0, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 				},
@@ -770,7 +768,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 			Data: &queryData{
 				ResultType: parser.ValueTypeVector,
 				Result: promql.Vector{
-					promql.Sample{
+					{
 						Metric: []labels.Label{
 							{
 								Name:  "__name__",
@@ -785,12 +783,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-a",
 							},
 						},
-						Point: promql.Point{
-							V: 0,
-							T: timestamp.FromTime(start),
-						},
+						F: 0,
+						T: timestamp.FromTime(start),
 					},
-					promql.Sample{
+					{
 						Metric: []labels.Label{
 							{
 								Name:  "__name__",
@@ -805,10 +801,8 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-c",
 							},
 						},
-						Point: promql.Point{
-							V: 1,
-							T: timestamp.FromTime(start),
-						},
+						F: 1,
+						T: timestamp.FromTime(start),
 					},
 				},
 			},
@@ -840,10 +834,9 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-c",
 							},
 						},
-						Point: promql.Point{
-							V: 1,
-							T: timestamp.FromTime(start),
-						},
+
+						F: 1,
+						T: timestamp.FromTime(start),
 					},
 				},
 			},
@@ -871,10 +864,9 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "boo",
 							},
 						},
-						Point: promql.Point{
-							V: 1,
-							T: timestamp.FromTime(start),
-						},
+
+						F: 1,
+						T: timestamp.FromTime(start),
 					},
 				},
 			},
@@ -892,8 +884,8 @@ var MyTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
 						},
 						Metric: []labels.Label{
 							{
@@ -911,8 +903,8 @@ var MyTokenQueryScenarios = map[string]Scenario{
 						},
 					},
 					promql.Series{
-						Points: []promql.Point{
-							{V: 1, T: timestamp.FromTime(start)},
+						Floats: []promql.FPoint{
+							{F: 1, T: timestamp.FromTime(start)},
 						},
 						Metric: []labels.Label{
 							{
@@ -950,10 +942,9 @@ var MyTokenQueryScenarios = map[string]Scenario{
 							Value: "test_metric_without_labels",
 						},
 					},
-					Point: promql.Point{
-						V: 1,
-						T: timestamp.FromTime(start),
-					},
+
+					F: 1,
+					T: timestamp.FromTime(start),
 				}},
 			},
 		},
@@ -987,10 +978,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 2, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 						Metric: nil,
 					},
@@ -1101,10 +1092,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-a",
 							},
 						},
-						Points: []promql.Point{
-							{V: 0, T: timestamp.FromTime(start)},
-							{V: 0, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 0, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 0, T: timestamp.FromTime(start)},
+							{F: 0, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 0, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 					promql.Series{
@@ -1122,10 +1113,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-c",
 							},
 						},
-						Points: []promql.Point{
-							{V: 1, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 1, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 				},
@@ -1161,10 +1152,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "ns-c",
 							},
 						},
-						Points: []promql.Point{
-							{V: 1, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 1, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 				},
@@ -1196,10 +1187,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "boo",
 							},
 						},
-						Points: []promql.Point{
-							{V: 1, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 1, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 				},
@@ -1227,10 +1218,10 @@ var MyTokenQueryScenarios = map[string]Scenario{
 								Value: "test_metric_without_labels",
 							},
 						},
-						Points: []promql.Point{
-							{V: 1, T: timestamp.FromTime(start)},
-							{V: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
-							{V: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
+						Floats: []promql.FPoint{
+							{F: 1, T: timestamp.FromTime(start)},
+							{F: 1, T: timestamp.FromTime(start.Add(1 * time.Second))},
+							{F: 1, T: timestamp.FromTime(start.Add(2 * time.Second))},
 						},
 					},
 				},

@@ -14,7 +14,7 @@ jobs:
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           export DOCKER_BUILDKIT=1
           #docker build -f Dockerfile.dapper -t ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION} .
-          go mod tidy -go=1.16 && go mod tidy -go=1.17
+          go mod tidy
           make
           docker ps
           docker push ghcr.io/${{ github.repository_owner }}/${IMAGE}/${IMAGE}:${VERSION}
