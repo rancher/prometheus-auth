@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/caas-team/prometheus-auth/pkg/data"
 	promlb "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
-	"github.com/rancher/prometheus-auth/pkg/data"
 )
 
 func translateMatcher(namespaceSet data.Set, srcMatcher *promlb.Matcher) {

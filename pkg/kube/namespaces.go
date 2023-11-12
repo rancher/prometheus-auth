@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/caas-team/prometheus-auth/pkg/data"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/juju/errors"
-	"github.com/rancher/prometheus-auth/pkg/data"
 	log "github.com/sirupsen/logrus"
 	authorization "k8s.io/api/authorization/v1"
 	core "k8s.io/api/core/v1"

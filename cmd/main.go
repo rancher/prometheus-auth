@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/rancher/prometheus-auth/pkg/agent"
+	"github.com/caas-team/prometheus-auth/pkg/agent"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )

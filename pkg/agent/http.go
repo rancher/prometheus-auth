@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/caas-team/prometheus-auth/pkg/kube"
 	"github.com/gorilla/mux"
 	"github.com/juju/errors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rancher/prometheus-auth/pkg/kube"
 	log "github.com/sirupsen/logrus"
 	authentication "k8s.io/api/authentication/v1"
 )

@@ -8,7 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cockroachdb/cockroach/pkg/util/httputil"
+	"github.com/caas-team/prometheus-auth/pkg/data"
+	"github.com/caas-team/prometheus-auth/pkg/prom"
 	"github.com/golang/snappy"
 	"github.com/juju/errors"
 	prommodel "github.com/prometheus/common/model"
@@ -18,8 +19,6 @@ import (
 	"github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/prometheus/prometheus/util/stats"
-	"github.com/rancher/prometheus-auth/pkg/data"
-	"github.com/rancher/prometheus-auth/pkg/prom"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,7 +72,7 @@ func hijackFederate(apiCtx *apiContext) error {
 
 func hijackQuery(apiCtx *apiContext) error {
 	req := apiCtx.request
-	apiCtx.response.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+	apiCtx.response.Header().Set("Content-Type", "application/json")
 
 	// pre check
 	if to := req.FormValue("timeout"); len(to) != 0 {
@@ -144,7 +143,7 @@ func hijackQuery(apiCtx *apiContext) error {
 
 func hijackQueryRange(apiCtx *apiContext) error {
 	req := apiCtx.request
-	apiCtx.response.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+	apiCtx.response.Header().Set("Content-Type", "application/json")
 
 	// pre check
 	if to := req.FormValue("timeout"); len(to) != 0 {
@@ -241,7 +240,7 @@ func hijackQueryRange(apiCtx *apiContext) error {
 }
 
 func hijackSeries(apiCtx *apiContext) error {
-	apiCtx.response.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+	apiCtx.response.Header().Set("Content-Type", "application/json")
 
 	// pre check
 	queries, err := url.ParseQuery(apiCtx.request.URL.RawQuery)
@@ -381,7 +380,7 @@ func hijackLabelNamespaces(apiCtx *apiContext) error {
 }
 
 func hijackLabelName(apiCtx *apiContext) error {
-	apiCtx.response.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+	apiCtx.response.Header().Set("Content-Type", "application/json")
 
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {

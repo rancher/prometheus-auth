@@ -1,9 +1,9 @@
 package prom
 
 import (
+	"github.com/caas-team/prometheus-auth/pkg/data"
 	promlb "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
-	"github.com/rancher/prometheus-auth/pkg/data"
 )
 
 const (

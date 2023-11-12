@@ -6,14 +6,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cockroachdb/cockroach/pkg/util/httputil"
+	"github.com/caas-team/prometheus-auth/pkg/data"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/juju/errors"
 	promapiv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	promgo "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	"github.com/rancher/prometheus-auth/pkg/data"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/runtime"
 )
@@ -49,7 +48,7 @@ type jsonResponseData struct {
 func (c *apiContext) responseJSON(data interface{}) (err error) {
 	c.Do(func() {
 		resp := c.response
-		resp.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+		resp.Header().Set("Content-Type", "application/json")
 
 		responseData := &jsonResponseData{
 			Status: "success",
@@ -73,8 +72,8 @@ func (c *apiContext) responseJSON(data interface{}) (err error) {
 func (c *apiContext) responseProto(data proto.Message) (err error) {
 	c.Do(func() {
 		resp := c.response
-		resp.Header().Set(httputil.ContentTypeHeader, httputil.ProtoContentType)
-		resp.Header().Set(httputil.ContentEncodingHeader, "snappy")
+		resp.Header().Set("Content-Type", "application/x-protobuf")
+		resp.Header().Set("Content-Encoding", "snappy")
 
 		if data == nil {
 			resp.WriteHeader(http.StatusNoContent)
@@ -102,7 +101,7 @@ func (c *apiContext) responseMetrics(data *promgo.MetricFamily) (err error) {
 
 		respFormat := expfmt.Negotiate(req.Header)
 		respEncoder := expfmt.NewEncoder(resp, respFormat)
-		resp.Header().Set(httputil.ContentTypeHeader, string(respFormat))
+		resp.Header().Set("Content-Type", string(respFormat))
 
 		if data == nil {
 			return
@@ -167,10 +166,10 @@ func (f apiContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		responseErrType = "execution"
 	}
 
-	acceptHeaderValue := r.Header.Get(httputil.AcceptHeader)
-	contentTypeHeaderValue := w.Header().Get(httputil.ContentTypeHeader)
-	if !strings.Contains(acceptHeaderValue, httputil.JSONContentType) &&
-		!strings.EqualFold(contentTypeHeaderValue, httputil.JSONContentType) {
+	acceptHeaderValue := r.Header.Get("Accept")
+	contentTypeHeaderValue := w.Header().Get("Content-Type")
+	if !strings.Contains(acceptHeaderValue, "application/json") &&
+		!strings.EqualFold(contentTypeHeaderValue, "application/json") {
 
 		http.Error(w, causeErrMsg, responseCode)
 		return
@@ -190,7 +189,7 @@ func (f apiContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set(httputil.ContentTypeHeader, httputil.JSONContentType)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseCode)
 	if _, writeErr := w.Write(respBytes); writeErr != nil {
 		log.WithError(err).Errorf("failed to write %q into http response", string(respBytes))

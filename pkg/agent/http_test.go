@@ -19,7 +19,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/cockroachdb/cockroach/pkg/util/httputil"
+	"github.com/caas-team/prometheus-auth/pkg/agent/samples"
+	"github.com/caas-team/prometheus-auth/pkg/data"
+	"github.com/caas-team/prometheus-auth/pkg/kube"
 	"github.com/gogo/protobuf/proto"
 	"github.com/golang/snappy"
 	"github.com/json-iterator/go"
@@ -32,9 +34,6 @@ import (
 	"github.com/prometheus/prometheus/promql"
 	promtsdb "github.com/prometheus/prometheus/tsdb"
 	promweb "github.com/prometheus/prometheus/web"
-	"github.com/rancher/prometheus-auth/pkg/agent/samples"
-	"github.com/rancher/prometheus-auth/pkg/data"
-	"github.com/rancher/prometheus-auth/pkg/kube"
 	"github.com/stretchr/testify/require"
 	authentication "k8s.io/api/authentication/v1"
 )
@@ -474,7 +473,7 @@ func (v ScenarioValidator) executeRequest(t *testing.T, handler http.Handler) *h
 		case http.MethodPost:
 			url = fmt.Sprintf("%s/api/v1%s", url, v.Scenario.Endpoint)
 			body = strings.NewReader(v.Scenario.Queries.Encode())
-			headers[httputil.ContentTypeHeader] = "application/x-www-form-urlencoded"
+			headers["Content-Type"] = "application/x-www-form-urlencoded"
 		default:
 			t.Errorf("[%s] [%s] token %q scenario %q: cannot identify URL to send request", v.Type, v.Method, v.Token, v.Name)
 			return nil

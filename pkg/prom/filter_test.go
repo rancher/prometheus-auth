@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/caas-team/prometheus-auth/pkg/data"
 	"github.com/juju/errors"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"
-	"github.com/rancher/prometheus-auth/pkg/data"
 )
 
 var metrics = []struct {
