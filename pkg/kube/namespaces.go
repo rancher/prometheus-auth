@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/caas-team/prometheus-auth/pkg/data"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/juju/errors"
 	log "github.com/sirupsen/logrus"
 	authorization "k8s.io/api/authorization/v1"
