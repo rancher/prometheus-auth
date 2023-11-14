@@ -5,8 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/caas-team/prometheus-auth/pkg/agent/test"
-	"github.com/prometheus/prometheus/storage"
-	webapiv1 "github.com/prometheus/prometheus/web/api/v1"
+	"github.com/prometheus/prometheus/tsdb"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -246,7 +245,7 @@ func Test_accessControl(t *testing.T) {
 			Path:   "/",
 		},
 		TSDBDir:      dbDir,
-		LocalStorage: &dbAdapter{},
+		LocalStorage: &dbAdapter{storage.DB},
 		Version:      &promweb.PrometheusVersion{},
 		Flags:        map[string]string{},
 
@@ -658,8 +657,7 @@ func mockTokenAuth() kube.Tokens {
 }
 
 type dbAdapter struct {
-	storage.Storage
-	webapiv1.TSDBAdminStats
+	*tsdb.DB
 }
 
 func (a *dbAdapter) Stats(statsByLabelName string, limit int) (*promtsdb.Stats, error) {

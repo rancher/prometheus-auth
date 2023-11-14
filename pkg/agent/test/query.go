@@ -19,6 +19,7 @@ type queryData struct {
 }
 
 var start = time.Unix(0, 0)
+
 var NoneNamespacesTokenQueryScenarios = map[string]Scenario{
 	"query - none expression with time 1": {
 		Endpoint: "/query",

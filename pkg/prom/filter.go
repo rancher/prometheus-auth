@@ -36,12 +36,8 @@ func FilterLabelMatchers(namespaceSet data.Set, srcMatchers []*prompb.LabelMatch
 		}
 	}
 
-	// append caas clustermetrics label
-	//caas := []prompb.LabelMatcher{prompb.LabelMatcher{Name: "caas.telekom.de/clustermetric", Value: "entsoe", Type: prompb.LabelMatcher_EQ}}
-
-	// caas := []promlb.Label{"caas.telekom.de/clustermetric","entsoe"}
 	// append namespace match
-	srcMatchers = append(srcMatchers, createLabelMatcher(namespaceMatchName, namespaceSet.Values()), &prompb.LabelMatcher{Name: "caas.telekom.de/clustermetric", Value: "entsoe"})
+	srcMatchers = append(srcMatchers, createLabelMatcher(namespaceMatchName, namespaceSet.Values()))
 
 	return srcMatchers
 }

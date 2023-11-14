@@ -18,7 +18,7 @@ var metrics = []struct {
 	{
 		"not label",
 		`a`,
-		`a{caas.telekom.de/clustermetric="entsoe",namespace=~"ns-a|ns-b|rx-c"}`,
+		`a{namespace=~"ns-a|ns-b|rx-c"}`,
 	},
 	{
 		"none namespace label",
@@ -114,7 +114,6 @@ func fakeNamespaceSet() data.Set {
 func TestFilterMatchers(t *testing.T) {
 	nsSet := fakeNamespaceSet()
 	errs := make([]error, 0, len(metrics))
-
 	for _, c := range metrics {
 		err := walkExpr(c.name, c.input, c.expect, func(matchers []*labels.Matcher) ([]*labels.Matcher, error) {
 			return FilterMatchers(nsSet, matchers), nil
