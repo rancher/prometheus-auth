@@ -149,8 +149,9 @@ func (f apiContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// response error msg
 	causeErrMsg := ""
-	switch e := err.(type) {
-	case *errors.Err:
+	var e *errors.Err
+	switch {
+	case errors.As(err, &e):
 		causeErrMsg = e.Underlying().Error()
 	default:
 		causeErrMsg = err.Error()
@@ -158,10 +159,10 @@ func (f apiContextHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	responseErrType := ""
 	responseCode := http.StatusInternalServerError
-	if errors.IsBadRequest(err) {
+	if errors.As(err, &badRequestErr) {
 		responseCode = http.StatusBadRequest
 		responseErrType = "bad_data"
-	} else if errors.IsNotProvisioned(err) {
+	} else if errors.As(err, &notProvisionedErr) {
 		responseCode = http.StatusUnprocessableEntity
 		responseErrType = "execution"
 	}
