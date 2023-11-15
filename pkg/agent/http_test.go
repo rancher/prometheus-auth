@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/caas-team/prometheus-auth/pkg/agent/test"
+	"github.com/go-kit/log"
 	"github.com/prometheus/prometheus/tsdb"
 	"io"
 	"io/ioutil"
@@ -219,7 +220,10 @@ func Test_accessControl(t *testing.T) {
 			test_metric_old                         		1+10x98
 	`
 	storage := promql.LoadedStorage(t, input)
-	engine := promql.NewEngine(promql.EngineOpts{})
+	engine := promql.NewEngine(promql.EngineOpts{
+		Timeout:    5 * time.Second,
+		MaxSamples: 1000,
+	})
 	promql.RunTest(t, input, engine)
 
 	dbDir, err := ioutil.TempDir("", "tsdb-ready")
@@ -227,7 +231,7 @@ func Test_accessControl(t *testing.T) {
 
 	require.NoError(t, err)
 
-	webHandler := promweb.New(nil, &promweb.Options{
+	webHandler := promweb.New(log.NewJSONLogger(os.Stderr), &promweb.Options{
 		Context:        context.Background(),
 		ListenAddress:  ":9090",
 		ReadTimeout:    30 * time.Second,
@@ -437,7 +441,7 @@ func (v ScenarioValidator) Validate(t *testing.T, handler http.Handler) {
 }
 
 func (v ScenarioValidator) executeRequest(t *testing.T, handler http.Handler) *httptest.ResponseRecorder {
-	url := "http://example.org" // base url that federator is expected to be hosted at
+	url := "http://localhost:9090" // base url that federator is expected to be hosted at
 	headers := map[string]string{
 		authorizationHeaderKey: fmt.Sprintf("Bearer %s", v.Token),
 	}

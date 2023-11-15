@@ -1016,7 +1016,7 @@ var MyTokenQueryScenarios = map[string]Scenario{
 		RespBody: &jsonResponseData{
 			Status:    "error",
 			ErrorType: "bad_data",
-			Error:     `1:8: parse error: unexpected right bracket ']'`,
+			Error:     `invalid parameter "query": 1:8: parse error: unexpected right bracket ']'`,
 		},
 	},
 	"query_range - invalid step": {
