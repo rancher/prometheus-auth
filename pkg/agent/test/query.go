@@ -448,10 +448,11 @@ var SomeNamespacesTokenQueryScenarios = map[string]Scenario{
 				ResultType: parser.ValueTypeMatrix,
 				Result: promql.Matrix{
 					promql.Series{
-						Floats: []promql.FPoint{{
-							T: timestamp.FromTime(start),
-							F: 0,
-						},
+						Floats: []promql.FPoint{
+							{
+								T: timestamp.FromTime(start),
+								F: 0,
+							},
 						},
 						Metric: []labels.Label{
 							{

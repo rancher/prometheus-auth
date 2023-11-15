@@ -13,6 +13,7 @@ func stringSliceIgnore(strSlice []string, ignore *string) []string {
 func stringSliceFilter(strSlice []string, filter func(value *string) bool) []string {
 	matchNss := make([]string, 0, len(strSlice))
 	for _, ns := range strSlice {
+		ns := ns
 		if filter(&ns) {
 			matchNss = append(matchNss, ns)
 		}

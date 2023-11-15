@@ -3,11 +3,11 @@ package agent
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -47,22 +47,22 @@ func Run(cliContext *cli.Context) {
 
 	proxyURLString := cliContext.String("proxy-url")
 	if len(proxyURLString) == 0 {
-		log.Fatal("--agent.proxy-url is blank")
+		log.Panic("--agent.proxy-url is blank")
 	}
 	proxyURL, err := url.Parse(proxyURLString)
 	if err != nil {
-		log.Fatal("Unable to parse agent.proxy-url")
+		log.Panic("Unable to parse agent.proxy-url")
 	}
 	cfg.proxyURL = proxyURL
 
 	accessTokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	accessTokenBytes, err := ioutil.ReadFile(accessTokenPath)
+	accessTokenBytes, err := os.ReadFile(accessTokenPath)
 	if err != nil {
-		log.WithError(err).Fatalf("Failed to read token file %q", accessTokenPath)
+		log.WithError(err).Panicf("Failed to read token file %q", accessTokenPath)
 	}
 	accessToken := strings.TrimSpace(string(accessTokenBytes))
 	if len(accessToken) == 0 {
-		log.Fatalf("Read empty token from file %q", accessTokenPath)
+		log.Panicf("Read empty token from file %q", accessTokenPath)
 	}
 	cfg.myToken = accessToken
 
@@ -70,11 +70,11 @@ func Run(cliContext *cli.Context) {
 
 	reader, err := createAgent(cfg)
 	if err != nil {
-		log.WithError(err).Fatal("Failed to create agent")
+		log.WithError(err).Panic("Failed to create agent")
 	}
 
 	if err = reader.serve(); err != nil {
-		log.WithError(err).Fatal("Failed to serve")
+		log.WithError(err).Panic("Failed to serve")
 	}
 }
 
@@ -138,7 +138,10 @@ func (a *agent) serve() error {
 		return err
 	case <-a.cfg.ctx.Done():
 		grpcProxy.GracefulStop()
-		httpProxy.Shutdown(a.cfg.ctx)
+		err := httpProxy.Shutdown(a.cfg.ctx)
+		if err != nil {
+			log.Warnf("Error shuting down httproxy: %v", err)
+		}
 		return nil
 	}
 }

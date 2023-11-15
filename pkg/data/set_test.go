@@ -53,5 +53,4 @@ func TestSet(t *testing.T) {
 	if s.String() != expertJoins {
 		t.Errorf("expect %v, but got %v", expertJoins, str)
 	}
-
 }

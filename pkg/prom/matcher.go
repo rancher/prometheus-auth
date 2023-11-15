@@ -33,13 +33,14 @@ func createLabelMatcher(matcherName string, namespaces []string) *prompb.LabelMa
 func modifyMatcher(srcMatcher *promlb.Matcher, namespaces []string) *promlb.Matcher {
 	size := len(namespaces)
 
-	if size == 0 {
+	switch size {
+	case 0:
 		srcMatcher.Type = promlb.MatchEqual
 		srcMatcher.Value = noneNamespace
-	} else if size == 1 {
+	case 1:
 		srcMatcher.Type = promlb.MatchEqual
 		srcMatcher.Value = namespaces[0]
-	} else {
+	default:
 		srcMatcher.Type = promlb.MatchRegexp
 		srcMatcher.Value = join(namespaces)
 	}
@@ -58,13 +59,14 @@ func modifyMatcher(srcMatcher *promlb.Matcher, namespaces []string) *promlb.Matc
 func modifyLabelMatcher(srcMatcher *prompb.LabelMatcher, namespaces []string) {
 	size := len(namespaces)
 
-	if size == 0 {
+	switch size {
+	case 0:
 		srcMatcher.Type = prompb.LabelMatcher_EQ
 		srcMatcher.Value = noneNamespace
-	} else if size == 1 {
+	case 1:
 		srcMatcher.Type = prompb.LabelMatcher_EQ
 		srcMatcher.Value = namespaces[0]
-	} else {
+	default:
 		srcMatcher.Type = prompb.LabelMatcher_RE
 		srcMatcher.Value = join(namespaces)
 	}

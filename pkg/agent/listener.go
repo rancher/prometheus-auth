@@ -61,8 +61,7 @@ func http2HeaderFieldEqual(nameValuePairs map[string]string) cmux.Matcher {
 				return false
 			}
 
-			switch f := f.(type) {
-			case *http2.HeadersFrame:
+			if f, ok := f.(*http2.HeadersFrame); ok {
 				if _, err := hdec.Write(f.HeaderBlockFragment()); err != nil {
 					return false
 				}

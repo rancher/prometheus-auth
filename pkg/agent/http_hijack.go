@@ -100,7 +100,7 @@ func hijackQuery(apiCtx *apiContext) error {
 			var val parser.Value
 			switch queryExpr.Type() {
 			case parser.ValueTypeVector:
-				val = make(promql.Vector, 0, 0)
+				val = make(promql.Vector, 0)
 			case parser.ValueTypeMatrix:
 				val = promql.Matrix{}
 			default:
@@ -274,7 +274,7 @@ func hijackSeries(apiCtx *apiContext) error {
 
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {
-		emptyRespData := make([]promlb.Labels, 0, 0)
+		emptyRespData := make([]promlb.Labels, 0)
 
 		return apiCtx.responseJSON(emptyRespData)
 	}
@@ -364,7 +364,7 @@ func hijackRead(apiCtx *apiContext) error {
 func hijackLabelNamespaces(apiCtx *apiContext) error {
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {
-		emptyRespData := make([]string, 0, 0)
+		emptyRespData := make([]string, 0)
 
 		return apiCtx.responseJSON(emptyRespData)
 	}
@@ -384,7 +384,7 @@ func hijackLabelName(apiCtx *apiContext) error {
 
 	// quick response
 	if len(apiCtx.namespaceSet) == 0 {
-		emptyRespData := make([]string, 0, 0)
+		emptyRespData := make([]string, 0)
 
 		return apiCtx.responseJSON(emptyRespData)
 	}

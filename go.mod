@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292
+	github.com/go-kit/log v0.2.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt/v5 v5.1.0
 	github.com/golang/snappy v0.0.4
@@ -44,7 +45,6 @@ require (
 	github.com/edsrzf/mmap-go v1.1.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
